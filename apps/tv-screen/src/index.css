@@ -1,0 +1,29 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-tv-background text-tv-text font-sans antialiased overflow-hidden m-0 p-0;
+  }
+}
+
+/* Custom CSS to handle forced Landscape vs Portrait via class in React */
+.tv-container {
+  width: 100vw;
+  height: 100vh;
+  position: relative;
+  overflow: hidden;
+}
+
+/* If app is forced into Portrait even on a landscape screen, we can rotate it using CSS
+   so that a smart TV mounted vertically works natively without OS tweaking! */
+.tv-engine-portrait-rotated {
+  width: 100vh;
+  height: 100vw;
+  transform: rotate(-90deg);
+  transform-origin: top left;
+  position: absolute;
+  top: 100vh;
+  left: 0;
+}
