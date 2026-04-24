@@ -177,16 +177,49 @@ export function MosqueDetailPage() {
                         </SelectContent>
                       </Select>
                     </div>
-                    <div className="space-y-2">
-                      <Label>TV Design Preset</Label>
-                      <Select value={formData.themeSettings?.tvDesign || "A"} onValueChange={(val) => handleDeepChange("themeSettings", "tvDesign", val)}>
-                        <SelectTrigger><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="A">Theme A (Dark Blue)</SelectItem>
-                          <SelectItem value="E">Theme E (Light Minimal)</SelectItem>
-                          <SelectItem value="H">Theme H (Masjid Al-Rahman)</SelectItem>
-                        </SelectContent>
-                      </Select>
+                    <div className="space-y-2 col-span-2">
+                      <Label>TV Design Theme</Label>
+                      <div className="grid grid-cols-2 gap-2 pt-1">
+                        {[
+                          // ALMASJID BLUE
+                          { id: "A",   label: "AlMasjid Blue",      dots: ["#00d4ff","#ffd700","#001060"], bg: "linear-gradient(135deg,#000e5a,#0040c0)" },
+                          { id: "D",   label: "AlMasjid Night",     dots: ["#00d4ff","#ffd700","#000318"], bg: "linear-gradient(135deg,#000310,#002090)" },
+                          // MOSQUE GLASS
+                          { id: "E",   label: "Mosque Glass",       dots: ["#1565c0","#a06000","#aec6d8"], bg: "#aec6d8" },
+                          { id: "E2",  label: "Mosque Glass Dark",  dots: ["#1565c0","#a06000","#1a2535"], bg: "#1a2535" },
+                          // CLASSIC
+                          { id: "A2",  label: "Classic Dark",       dots: ["#00e676","#ffd54f","#05070f"], bg: "#05070f" },
+                          { id: "F",   label: "Midnight Purple",    dots: ["#bf5af2","#ff9f0a","#0d0018"], bg: "#0d0018" },
+                          // TEAL / OCEAN
+                          { id: "G",   label: "Midnight Teal",      dots: ["#20d6c7","#ffd60a","#001a1a"], bg: "#001a1a" },
+                          { id: "G2",  label: "Deep Ocean",         dots: ["#4dabf7","#ffd54f","#05060f"], bg: "#05060f" },
+                          // SPECIAL
+                          { id: "H",   label: "★ Masjid Al-Rahman", dots: ["#c9a84c","#c9a84c","#0a1520"], bg: "linear-gradient(135deg,#081a14,#0c1e1a)" },
+                        ].map(t => {
+                          const isSelected = (formData.themeSettings?.tvDesign || "A") === t.id
+                          return (
+                            <div
+                              key={t.id}
+                              onClick={() => handleDeepChange("themeSettings", "tvDesign", t.id)}
+                              className={`flex items-center gap-3 p-2.5 rounded-lg border-2 cursor-pointer transition-all ${isSelected ? "border-primary bg-primary/10" : "border-border hover:border-border/80"}`}
+                            >
+                              {/* Mini preview */}
+                              <div className="w-12 h-8 rounded flex-shrink-0 overflow-hidden relative" style={{ background: t.bg }}>
+                                <div className="absolute top-0 left-0 right-0 h-1.5 bg-black/30" />
+                                <div className="absolute bottom-0 left-0 right-0 h-2 bg-black/30" />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className={`text-xs font-semibold truncate ${t.id === 'H' ? 'text-yellow-500' : ''}`}>{t.label}</div>
+                                <div className="flex gap-1 mt-1">
+                                  {t.dots.map((d, i) => (
+                                    <div key={i} className="w-2.5 h-2.5 rounded-full border border-white/10" style={{ background: d }} />
+                                  ))}
+                                </div>
+                              </div>
+                            </div>
+                          )
+                        })}
+                      </div>
                     </div>
                     <div className="space-y-2">
                       <Label>TV Orientation</Label>
