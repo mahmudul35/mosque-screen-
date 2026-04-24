@@ -1,6 +1,7 @@
 import { useState } from "react"
+import { Link, useNavigate } from "react-router-dom"
 import { useGetMosquesQuery, useAddMosqueMutation, useDeleteMosqueMutation } from "@/store/api/apiSlice"
-import { Building2, Search, MoreHorizontal, Plus, Filter, Loader2 } from "lucide-react"
+import { Building2, Search, MoreHorizontal, Plus, Filter, Loader2, ExternalLink } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -34,6 +35,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 export function MosquesPage() {
+  const navigate = useNavigate()
   const { data: mosques = [], isLoading, isFetching } = useGetMosquesQuery()
   const [deleteMosque] = useDeleteMosqueMutation()
   
@@ -116,7 +118,9 @@ export function MosquesPage() {
               filteredMosques.map((mosque) => (
                 <TableRow key={mosque.id} className="transition-colors hover:bg-muted/30">
                   <TableCell className="font-medium text-xs text-muted-foreground">{mosque.mosqueId}</TableCell>
-                  <TableCell className="font-semibold">{mosque.name}</TableCell>
+                  <TableCell className="font-semibold cursor-pointer text-primary hover:underline hover:text-primary/80" onClick={() => navigate(`/mosques/${mosque.id}`)}>
+                    {mosque.name}
+                  </TableCell>
                   <TableCell className="text-sm">
                     {mosque.address}<br/>
                     <span className="text-xs text-muted-foreground">{mosque.country}</span>
@@ -148,7 +152,10 @@ export function MosquesPage() {
                           Copy ID
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem>View Details</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => navigate(`/mosques/${mosque.id}`)}>
+                          <ExternalLink className="mr-2 h-4 w-4" />
+                          View Details
+                        </DropdownMenuItem>
                         <DropdownMenuItem>Manage Screens</DropdownMenuItem>
                         <DropdownMenuItem className="text-destructive focus:bg-destructive/10" onClick={() => handleDelete(mosque.id)}>
                           Suspend Mosque

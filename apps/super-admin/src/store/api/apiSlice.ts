@@ -1,8 +1,10 @@
 import { createApi, fakeBaseQuery } from "@reduxjs/toolkit/query/react"
+import { collection, getDocs, doc, setDoc, deleteDoc, getDoc, updateDoc } from "firebase/firestore"
+import { db } from "@/lib/firebase"
 
 export interface Mosque {
   id: string
-  mosqueId: string // e.g., MSQ-BD-001
+  mosqueId: string
   name: string
   address: string
   country: string
@@ -10,57 +12,107 @@ export interface Mosque {
   plan: "Free" | "Basic" | "Pro" | "Enterprise"
   status: "Active" | "Suspended" | "Trial"
   screensCount: number
-  lastActive: string // ISO date
+  lastActive: string
   adminEmail: string
+  createdAt: string
 }
-
-// Temporary Mock Data
-const mockMosques: Mosque[] = [
-  { id: "1", mosqueId: "MSQ-UK-001", name: "Central Mosque London", address: "146 Park Road, London", country: "United Kingdom", timezone: "Europe/London", plan: "Pro", status: "Active", screensCount: 3, lastActive: new Date().toISOString(), adminEmail: "imam@londonmosque.com" },
-  { id: "2", mosqueId: "MSQ-BD-002", name: "Baitul Mukarram", address: "Purana Paltan, Dhaka", country: "Bangladesh", timezone: "Asia/Dhaka", plan: "Enterprise", status: "Active", screensCount: 12, lastActive: new Date().toISOString(), adminEmail: "admin@baitulmukarram.bd" },
-  { id: "3", mosqueId: "MSQ-US-003", name: "Islamic Center of New York", address: "1 Riverside Dr, NY", country: "United States", timezone: "America/New_York", plan: "Basic", status: "Trial", screensCount: 1, lastActive: new Date(Date.now() - 86400000).toISOString(), adminEmail: "hello@icny.org" },
-  { id: "4", mosqueId: "MSQ-FR-004", name: "Grand Mosque of Paris", address: "2bis Place du Puits", country: "France", timezone: "Europe/Paris", plan: "Free", status: "Suspended", screensCount: 0, lastActive: new Date(Date.now() - 2592000000).toISOString(), adminEmail: "contact@grandmosque.fr" },
-  { id: "5", mosqueId: "MSQ-AE-005", name: "Sheikh Zayed Grand Mosque", address: "Abu Dhabi", country: "UAE", timezone: "Asia/Dubai", plan: "Enterprise", status: "Active", screensCount: 45, lastActive: new Date().toISOString(), adminEmail: "it@szgmc.ae" },
-]
 
 export const apiSlice = createApi({
   reducerPath: "api",
   baseQuery: fakeBaseQuery(),
-  tagTypes: ["Mosque", "Subscription", "User"],
+  tagTypes: ["Mosque"],
   endpoints: (builder) => ({
     getMosques: builder.query<Mosque[], void>({
       queryFn: async () => {
-        // Simulate network delay
-        await new Promise((resolve) => setTimeout(resolve, 800))
-        return { data: mockMosques }
+        try {
+          const querySnapshot = await getDocs(collection(db, "mosques"))
+          const mosques: Mosque[] = []
+          querySnapshot.forEach((doc) => {
+            mosques.push({ id: doc.id, ...doc.data() } as Mosque)
+          })
+          return { data: mosques }
+        } catch (error: any) {
+          return { error: { message: error.message } }
+        }
       },
       providesTags: ["Mosque"],
     }),
     
+    getMosqueById: builder.query<Mosque, string>({
+      queryFn: async (id) => {
+        try {
+          const docRef = doc(db, "mosques", id);
+          const docSnap = await getDoc(docRef);
+          if (docSnap.exists()) {
+            return { data: { id: docSnap.id, ...docSnap.data() } as Mosque }
+          }
+          return { error: { message: "Mosque not found" } }
+        } catch (error: any) {
+          return { error: { message: error.message } }
+        }
+      },
+      providesTags: (_result, _error, id) => [{ type: "Mosque", id }],
+    }),
+
     addMosque: builder.mutation<Mosque, Partial<Mosque>>({
       queryFn: async (newMosque) => {
-        await new Promise((resolve) => setTimeout(resolve, 800))
-        const mosque: Mosque = {
-          ...newMosque,
-          id: Math.random().toString(),
-          mosqueId: `MSQ-${newMosque.country?.substring(0,2).toUpperCase() || 'XX'}-${Math.floor(Math.random() * 1000)}`,
-          status: "Trial",
-          screensCount: 0,
-          lastActive: new Date().toISOString()
-        } as Mosque;
-        return { data: mosque }
+        try {
+          // Generate a custom document ID or use push ID. Let's use a unique string we generate from Firebase id maker implicitly or explicitly.
+          // Using doc() with a custom mosqueId if desired, but let's let Firestore auto-generate ID using doc(collection) then setDoc
+          const newDocRef = doc(collection(db, "mosques"));
+          
+          const mosqueId = `MSQ-${newMosque.country?.substring(0,2).toUpperCase() || 'XX'}-${Math.floor(Math.random() * 9000) + 1000}`;
+          
+          const mosqueData = {
+            ...newMosque,
+            mosqueId,
+            status: "Trial",
+            screensCount: 0,
+            lastActive: new Date().toISOString(),
+            createdAt: new Date().toISOString()
+          };
+
+          await setDoc(newDocRef, mosqueData);
+          
+          return { data: { id: newDocRef.id, ...mosqueData } as Mosque }
+        } catch (error: any) {
+          return { error: { message: error.message } }
+        }
       },
-      invalidatesTags: ["Mosque"], // Instruct RTK to refetch mosques list
+      invalidatesTags: ["Mosque"],
+    }),
+
+    updateMosque: builder.mutation<Mosque, { id: string; data: Partial<Mosque> }>({
+      queryFn: async ({ id, data }) => {
+        try {
+          const docRef = doc(db, "mosques", id);
+          await updateDoc(docRef, data);
+          return { data: { id, ...data } as Mosque } // Simplified return
+        } catch (error: any) {
+          return { error: { message: error.message } }
+        }
+      },
+      invalidatesTags: ["Mosque", (_result, _error, arg) => ({ type: "Mosque", id: arg.id })],
     }),
 
     deleteMosque: builder.mutation<{ success: boolean; id: string }, string>({
       queryFn: async (id) => {
-        await new Promise((resolve) => setTimeout(resolve, 600))
-        return { data: { success: true, id } }
+        try {
+          await deleteDoc(doc(db, "mosques", id));
+          return { data: { success: true, id } }
+        } catch (error: any) {
+          return { error: { message: error.message } }
+        }
       },
       invalidatesTags: ["Mosque"],
     })
   }),
 })
 
-export const { useGetMosquesQuery, useAddMosqueMutation, useDeleteMosqueMutation } = apiSlice
+export const { 
+  useGetMosquesQuery, 
+  useGetMosqueByIdQuery, 
+  useAddMosqueMutation, 
+  useUpdateMosqueMutation, 
+  useDeleteMosqueMutation 
+} = apiSlice

@@ -1,33 +1,19 @@
-import { initializeApp } from "firebase/app";
-import { getAuth } from "firebase/auth";
-import { getFirestore } from "firebase/firestore";
-
-/*
-  =========================================
-  🔥 FIREBASE CONFIGURATION INSTRUCTIONS 🔥
-  =========================================
-  
-  1. Go to https://console.firebase.google.com/
-  2. Create a new Project (or select existing)
-  3. Go to Project Settings -> General -> "Your apps"
-  4. Add a Web App (</>)
-  5. Copy the firebaseConfig object they provide and replace the placeholders below.
-  6. Enable 'Authentication' (Email/Password provider)
-  7. Enable 'Firestore Database'
-*/
+import { initializeApp } from "firebase/app"
+import { getAuth } from "firebase/auth"
+import { getFirestore } from "firebase/firestore"
 
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_PROJECT_ID.appspot.com",
-  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-  appId: "YOUR_APP_ID"
-};
+  apiKey: "AIzaSyCZe9h4G-Y32iGSy1OYfKlBxg-ImUbKEy8",
+  authDomain: "mosque-saas-d3283.firebaseapp.com",
+  projectId: "mosque-saas-d3283",
+  storageBucket: "mosque-saas-d3283.firebasestorage.app",
+  messagingSenderId: "97509684620",
+  appId: "1:97509684620:web:9a86428cbe28de9131d2a9"
+}
 
 // Initialize Firebase
-const app = initializeApp(firebaseConfig);
+const app = initializeApp(firebaseConfig)
 
 // Export Services
-export const auth = getAuth(app);
-export const db = getFirestore(app);
+export const auth = getAuth(app)
+export const db = getFirestore(app)
