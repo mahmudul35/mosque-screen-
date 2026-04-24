@@ -2,12 +2,83 @@ import { createApi, fakeBaseQuery } from "@reduxjs/toolkit/query/react"
 import { collection, getDocs, doc, setDoc, deleteDoc, getDoc, updateDoc } from "firebase/firestore"
 import { db } from "@/lib/firebase"
 
+export interface ThemeSettings {
+  bgImage?: string
+  bgOpacity?: string
+  bgBlur?: string
+  tvDesign?: string
+  customAcc?: string
+  customGold?: string
+  customIq?: string
+}
+
+export interface TypographySettings {
+  customFont?: string
+  fsClock?: string
+  fsAdhan?: string
+  fsIq?: string
+  fsNm?: string
+  fsSlide?: string
+  fsAr?: string
+}
+
+export interface SlideConfig {
+  showQuran?: string
+  showAnn?: string
+  showHadith?: string
+  showClean?: string
+  showDars?: string
+  showCommunity?: string
+  slideDur?: string
+  darsTitle?: string
+  darsTag?: string
+  darsDay?: string
+  darsTime?: string
+  darsPlace?: string
+  darsNote?: string
+}
+
+export interface ContentItem {
+  id: number
+  type: "hadith" | "quran"
+  ar?: string
+  en?: string
+  it?: string
+  bn?: string
+  src?: string
+}
+
+export interface AnnItem {
+  id: number
+  type: "text" | "photo"
+  icon?: string
+  photo?: string
+  visible: boolean
+  en?: string
+  it?: string
+  ar?: string
+  bn?: string
+  subEn?: string
+  subIt?: string
+  subAr?: string
+  subBn?: string
+  key?: string
+}
+
+export interface PrayerConfig {
+  jumuahIq?: string
+  jumuahNote?: string
+  method?: string
+  prayerTimes?: Record<string, { adhan?: string; iq?: string | null; m?: string; d?: number }>
+}
+
 export interface Mosque {
   id: string
   mosqueId: string
   name: string
   address: string
   country: string
+  city?: string
   timezone: string
   plan: "Free" | "Basic" | "Pro" | "Enterprise"
   status: "Active" | "Suspended" | "Trial"
@@ -15,10 +86,16 @@ export interface Mosque {
   lastActive: string
   adminEmail: string
   createdAt: string
+  
   // Central Control Settings for TV
   orientation?: "landscape" | "portrait"
-  theme?: string
-  tickerText?: string
+  displayLang?: string
+  themeSettings?: ThemeSettings
+  typography?: TypographySettings
+  slideConfig?: SlideConfig
+  prayerConfig?: PrayerConfig
+  contentItems?: ContentItem[]
+  annItems?: AnnItem[]
 }
 
 export const apiSlice = createApi({

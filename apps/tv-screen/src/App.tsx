@@ -1,41 +1,22 @@
 import { useState, useEffect } from 'react'
 import { doc, onSnapshot } from 'firebase/firestore'
 import { db } from './lib/firebase'
-
-interface Prayer {
-  name: string;
-  timeStr24: string; // From API e.g. "14:30"
-  timeFormatted: string; // e.g. "02:30 PM"
-  timeObj: Date; // For comparison
-  iqamahStr: string;   
-}
-
-function parseTime(timeStr: string): Date {
-  const [hours, minutes] = timeStr.split(':');
-  const d = new Date();
-  d.setHours(parseInt(hours, 10), parseInt(minutes, 10), 0, 0);
-  return d;
-}
-
-function formatTimeAMPM(timeStr: string): string {
-  const [h, m] = timeStr.split(':');
-  let hours = parseInt(h, 10);
-  const ampm = hours >= 12 ? 'PM' : 'AM';
-  hours = hours % 12;
-  hours = hours ? hours : 12; // the hour '0' should be '12'
-  return `${hours.toString().padStart(2, '0')}:${m} ${ampm}`;
-}
+import { toHijri, addMins, pad } from './lib/time'
+import { L, Lpn, LANG_DATA } from './lib/lang'
+import { usePrayers, PMETA } from './hooks/usePrayers'
 
 function App() {
   const [mosqueData, setMosqueData] = useState<any>(null)
   const [error, setError] = useState<string | null>(null)
-  
-  // Clock state
-  const [time, setTime] = useState<Date>(new Date())
-  // Prayer state
-  const [prayers, setPrayers] = useState<Prayer[]>([])
-  const [nextPrayerInfo, setNextPrayerInfo] = useState<{name: string, diffStr: string}>({ name: 'Loading', diffStr: '--:--' })
-  const [activePrayerIndex, setActivePrayerIndex] = useState<number>(-1)
+  const [now, setNow] = useState(new Date())
+
+  // Config data
+  const theme = mosqueData?.themeSettings?.tvDesign || 'A'
+  const lang = mosqueData?.displayLang || 'en'
+  const isLight = theme === 'E' || theme === 'E2'
+  const isH = theme === 'H'
+
+  const { apiData } = usePrayers(mosqueData)
 
   // 1. Firebase Listener
   useEffect(() => {
@@ -45,178 +26,183 @@ function App() {
       setError("Mosque ID is missing. Add ?id=YOUR_DOC_ID")
       return
     }
-
     const unsub = onSnapshot(doc(db, "mosques", docId), (docSnap) => {
-      if (docSnap.exists()) {
-        setMosqueData(docSnap.data())
-      } else {
-        setError("Mosque not found.")
-      }
-    }, (error) => setError(error.message))
+      if (docSnap.exists()) setMosqueData(docSnap.data())
+      else setError("Mosque not found.")
+    }, (e) => setError(e.message))
 
     return () => unsub()
   }, [])
 
-  // 2. Fetch Prayer Times when Mosque data is available
+  // 2. Clock Tick
   useEffect(() => {
-    if (!mosqueData) return;
-    
-    // Aladhan API fetch based on address/country
-    // E.g., we joined address and country for better resolution
-    const addressQuery = `${mosqueData.address || ''}, ${mosqueData.country || ''}`.trim()
-    if (!addressQuery) return;
+    const timer = setInterval(() => setNow(new Date()), 1000)
+    return () => clearInterval(timer)
+  }, [])
 
-    fetch(`https://api.aladhan.com/v1/timingsByAddress?address=${encodeURIComponent(addressQuery)}`)
-      .then(res => res.json())
-      .then(data => {
-        if(data.code === 200) {
-          const t = data.data.timings;
-          // Extract specific prayers
-          const pNames = ['Fajr', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'];
-          const parsedPrayers: Prayer[] = pNames.map(name => {
-            const timeStr24 = t[name];
-            // Mock Iqamah (+15 mins) for now - can be set from DB later
-            const tObj = parseTime(timeStr24);
-            const iqObj = new Date(tObj.getTime() + 15 * 60000); 
-            
-            return {
-              name,
-              timeStr24,
-              timeFormatted: formatTimeAMPM(timeStr24),
-              timeObj: tObj,
-              iqamahStr: formatTimeAMPM(`${iqObj.getHours().toString().padStart(2, '0')}:${iqObj.getMinutes().toString().padStart(2, '0')}`)
-            };
-          });
-          setPrayers(parsedPrayers);
-        }
-      })
-      .catch(err => console.error("API Fetch error:", err))
-  }, [mosqueData]) // Refetched if location changes
+  if (error) return <div className="text-red-500 text-center mt-20 text-2xl">{error}</div>
+  if (!mosqueData) return <div className="text-white text-center mt-20 text-2xl">Loading Mosque Data...</div>
 
-  // 3. Ticking Clock Engine (Updates every second)
-  useEffect(() => {
-    const timer = setInterval(() => {
-      const now = new Date();
-      setTime(now);
+  // --- Dynamic Styles ---
+  const customAcc = mosqueData?.themeSettings?.customAcc || '#00d4ff'
+  const customGold = mosqueData?.themeSettings?.customGold || '#ffd700'
+  const customIq = mosqueData?.themeSettings?.customIq || '#00ff88'
+  const bgBlur = mosqueData?.themeSettings?.bgBlur || '0'
+  const bgOpacity = mosqueData?.themeSettings?.bgOpacity || '0.85'
+  const dsBg = mosqueData?.themeSettings?.bgImage
 
-      // Engine to calculate next prayer & diff
-      if (prayers.length > 0) {
-        let nextIndex = prayers.findIndex(p => p.timeObj > now);
-        
-        // If all prayers today have passed, next is Fajr tomorrow
-        let isTomorrow = false;
-        if (nextIndex === -1) {
-          nextIndex = 0; // Fajr
-          isTomorrow = true;
-        }
-        
-        // Find current/active prayer (the one immediately preceding nextIndex)
-        let activeIdx = nextIndex - 1;
-        if (activeIdx < 0 && !isTomorrow) activeIdx = -1; // Before Fajr today
-        if (isTomorrow) activeIdx = prayers.length - 1; // After Isha today
-        setActivePrayerIndex(activeIdx);
+  const orientationClass = mosqueData?.orientation === 'portrait' 
+    ? 'tv-orientation-software-portrait' 
+    : 'tv-orientation-software-landscape'
 
-        // Calc time difference
-        let diffMs = prayers[nextIndex].timeObj.getTime() - now.getTime();
-        if (isTomorrow) {
-          diffMs += 24 * 60 * 60 * 1000; // Add 24 hours
-        }
+  // Determine Next Prayer & Active Prayer
+  const getActive = () => {
+    const t = now.getHours() * 60 + now.getMinutes()
+    const ts = PMETA.map(p => {
+      const [h, m] = (apiData[p.key]?.adhan || '00:00').split(':').map(Number)
+      return h * 60 + m
+    })
+    let a = 0; for (let i = 0; i < ts.length; i++) if (t >= ts[i]) a = i;
+    return a
+  }
+  const activeIdx = getActive()
 
-        const hrs = Math.floor(diffMs / 3600000);
-        const mins = Math.floor((diffMs % 3600000) / 60000);
-        const secs = Math.floor((diffMs % 60000) / 1000);
+  const getNextPrayerDiff = () => {
+    const sec = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds()
+    for (const p of PMETA) {
+      const [h, m] = (apiData[p.key]?.adhan || '00:00').split(':').map(Number)
+      const diff = h * 3600 + m * 60 - sec
+      if (diff > 0) return { key: p.key, diff }
+    }
+    return { key: 'Fajr', diff: 0 } // Tomorrow logic simplified
+  }
+  const nextP = getNextPrayerDiff()
 
-        setNextPrayerInfo({
-          name: prayers[nextIndex].name,
-          diffStr: `${hrs > 0 ? hrs + 'h ' : ''}${mins}m ${secs}s`
-        });
-      }
-    }, 1000);
-    return () => clearInterval(timer);
-  }, [prayers])
-
-
-  if (error) {
-    return <div className="tv-container bg-black flex items-center justify-center p-tv-8 text-tv-xl text-red-500">{error}</div>
+  const computeIq = (key: string) => {
+    const pt = mosqueData?.prayerConfig?.prayerTimes?.[key]
+    if (key === 'Shuruq') return null
+    if (!pt) return addMins(apiData[key]?.adhan || '00:00', 20) // Default +20m
+    if (pt.m === 'fixed') return pt.iq
+    if (pt.m === 'delay') return addMins(apiData[key]?.adhan || '00:00', pt.d || 0)
+    return null
   }
 
-  if (!mosqueData || prayers.length === 0) {
-    return <div className="tv-container bg-black flex items-center justify-center p-tv-8 text-tv-lg text-white">
-      Booting Mosque Digital Signage...
-    </div>
-  }
-
-  const orientation = mosqueData.orientation || 'landscape'
-  const containerClass = `tv-container ${orientation === 'portrait' ? 'tv-engine-portrait-rotated' : ''}`
-  const tickerText = mosqueData.tickerText || "Welcome to the Mosque."
-
-  const timeString = time.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
-  const dateString = time.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+  // Next Prayer formatting
+  const hh = Math.floor(nextP.diff / 3600)
+  const mm = Math.floor((nextP.diff % 3600) / 60)
+  const ss = nextP.diff % 60
+  const cnt = `${pad(hh)}:${pad(mm)}:${pad(ss)}`
 
   return (
-    <div className={containerClass}>
-      <div className="w-full h-full flex flex-col p-tv-4 gap-tv-4 bg-[url('https://images.unsplash.com/photo-1584551246679-0daf3d275d0f?auto=format&fit=crop&q=80')] bg-cover bg-center">
-        <div className="absolute inset-0 bg-tv-background/80 backdrop-blur-sm z-0"></div>
+    <div className={orientationClass}>
+      {/* Background System */}
+      <div 
+        id="tv-bgl" 
+        style={{
+          position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 0,
+          backgroundImage: dsBg ? `url('${dsBg}')` : 'none',
+          backgroundSize: 'cover', backgroundPosition: 'center',
+          filter: bgBlur ? `blur(${bgBlur}px)` : 'none',
+          transform: bgBlur ? 'scale(1.06)' : 'none'
+        }} 
+      />
+      <div 
+        id="tv-bgo" 
+        style={{
+          position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 1,
+          background: 'rgba(5,7,15,.95)',
+          opacity: dsBg ? bgOpacity : 1,
+          transition: 'opacity 1s ease'
+        }} 
+      />
 
-        {/* HEADER */}
-        <header className="relative z-10 flex justify-between items-center bg-tv-surface/40 rounded-3xl border border-white/10 p-tv-4 backdrop-blur-md shadow-lg">
-          <div className="flex flex-col drop-shadow-md">
-            <h1 className="text-tv-lg font-black text-tv-primary tracking-tight">{mosqueData.name}</h1>
-            <p className="text-tv-sm text-tv-text/80 font-medium">{dateString}</p>
-          </div>
-          <div className="flex flex-col items-end drop-shadow-md">
-            <h2 className="text-tv-3xl font-black tabular-nums tracking-tighter leading-none">{timeString}</h2>
-            <p className="text-tv-base text-tv-accent font-bold mt-1">Next: {nextPrayerInfo.name} in {nextPrayerInfo.diffStr}</p>
-          </div>
-        </header>
+      <div 
+        id="tv" 
+        data-t={theme}
+        style={{
+          position: 'relative', zIndex: 2, width: '100%', height: '100%',
+          display: 'flex', flexDirection: 'column',
+          ['--ta' as string]: customAcc,
+          ['--tg' as string]: customGold,
+          ['--ti' as string]: customIq,
+        }}
+      >
+        {/* Render Theme specific structures based on the massive design guidelines... */}
+        <div style={{ display: 'flex', width: '100%', height: '100%', gap: '2vw', padding: '2vw' }}>
+           
+           {/* LEFT PANEL: Prayertimes */}
+           <div style={{ width: '35vw', background: 'rgba(255,255,255,0.05)', backdropFilter: 'blur(10px)', borderRadius: '2vw', padding: '2vw' }}>
+              <div style={{ textAlign: 'center', marginBottom: '2vw' }}>
+                <div style={{ fontSize: '2.5vw', fontWeight: 800 }}>{mosqueData.name}</div>
+                <div style={{ fontSize: '1.2vw', color: 'rgba(255,255,255,0.7)' }}>{mosqueData.address}</div>
+              </div>
 
-        {/* MAIN BODY */}
-        <main className="relative z-10 flex-1 flex gap-tv-4 min-h-0">
-          
-          {/* LEFT: Prayer Times Table */}
-          <div className="w-[40%] bg-tv-surface/60 rounded-3xl border border-white/10 p-tv-4 flex flex-col min-h-0 backdrop-blur-md shadow-lg">
-            <h3 className="text-tv-base font-bold mb-tv-2 border-b border-white/20 pb-tv-1 text-tv-accent uppercase tracking-widest">Timetable</h3>
-            <div className="flex-1 flex flex-col justify-between min-h-0">
-              {prayers.map((prayer, i) => {
-                const isActive = i === activePrayerIndex;
-                return (
-                  <div key={prayer.name} className={`flex justify-between items-center py-tv-1 px-tv-4 rounded-xl transition-all duration-500 overflow-hidden relative ${isActive ? 'bg-tv-primary text-tv-background shadow-[0_0_30px_rgba(16,185,129,0.3)] scale-[1.02]' : 'hover:bg-white/5'}`}>
-                    {isActive && <div className="absolute top-0 left-0 w-1 h-full bg-white animate-pulse"></div>}
-                    <span className={`text-tv-lg font-bold tracking-tight ${isActive ? '' : 'text-tv-text/90'}`}>{prayer.name}</span>
-                    <div className="text-right">
-                      <span className={`block text-tv-base ${isActive ? 'font-black' : 'font-bold'}`}>{prayer.timeFormatted}</span>
-                      <span className={`block text-tv-sm font-medium ${isActive ? 'opacity-90' : 'text-tv-muted'}`}>Iqamah: {prayer.iqamahStr}</span>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1vw' }}>
+                {PMETA.map((p, i) => {
+                  const isActive = i === activeIdx
+                  const iq = computeIq(p.key)
+                  return (
+                    <div key={p.key} style={{
+                      display: 'flex', padding: '1vw', borderRadius: '1vw',
+                      background: isActive ? customAcc : 'rgba(255,255,255,0.02)',
+                      color: isActive ? '#000' : '#fff'
+                    }}>
+                      <div style={{ flex: 1, fontSize: '1.5vw', fontWeight: 'bold' }}>{Lpn(lang, p.key)}</div>
+                      <div style={{ fontSize: '1.5vw' }}>{apiData[p.key]?.adhan || '--:--'}</div>
+                      {iq && (
+                        <div style={{ marginLeft: '1vw', fontSize: '1.2vw', opacity: 0.8 }}>
+                          | {iq}
+                        </div>
+                      )}
                     </div>
-                  </div>
-                )
-              })}
-            </div>
-          </div>
+                  )
+                })}
+              </div>
 
-          {/* RIGHT: Dynamic Slider / Announcements */}
-          <div className="flex-1 bg-tv-surface/40 rounded-3xl border border-white/10 overflow-hidden backdrop-blur-md shadow-lg flex flex-col relative">
-             <div className="absolute top-tv-4 left-tv-4 bg-tv-primary/20 text-tv-primary px-tv-2 py-tv-1 rounded text-tv-sm font-bold uppercase tracking-wider border border-tv-primary/30 backdrop-blur-xl">
-               Quote of the Day
-             </div>
-             <div className="flex-1 flex flex-col justify-center items-center text-center p-tv-8">
-                <p className="text-tv-xl font-bold leading-tight mb-tv-4 text-white drop-shadow-lg">
-                  "The best among you are those who learn the Quran and teach it."
-                </p>
-                <p className="text-tv-base text-tv-primary font-bold drop-shadow-md">- Sahih Al-Bukhari</p>
-             </div>
-          </div>
-
-        </main>
-
-        {/* FOOTER TICKER */}
-        <footer className="relative z-10 bg-tv-primary text-tv-background rounded-full px-tv-4 py-tv-1.5 overflow-hidden flex items-center whitespace-nowrap shadow-[0_0_20px_rgba(16,185,129,0.2)]">
-           <span className="font-black text-tv-sm uppercase mr-tv-4 shrink-0 bg-tv-background text-tv-primary px-2 py-0.5 rounded-full">Notice</span>
-           <div className="text-tv-base font-bold animate-marquee inline-block w-full">
-              {tickerText} - {tickerText} - {tickerText}
+              {/* Jumuah display */}
+              <div style={{ marginTop: '2vw', padding: '1vw', background: 'rgba(0,0,0,0.3)', borderRadius: '1vw', textAlign: 'center' }}>
+                <div style={{ fontSize: '1.2vw', color: customGold }}>{L(lang, 'friday')}</div>
+                <div style={{ fontSize: '2vw', fontWeight: 'bold' }}>{mosqueData?.prayerConfig?.jumuahIq || '13:30'}</div>
+              </div>
            </div>
-        </footer>
-      </div>
 
+           {/* RIGHT PANEL: Clock & Slides */}
+           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '2vw' }}>
+             
+             {/* Clock Area */}
+             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(255,255,255,0.05)', backdropFilter: 'blur(10px)', borderRadius: '2vw', padding: '2vw' }}>
+               <div>
+                 <div style={{ fontSize: '1.5vw', color: customAcc }}>{toHijri(now)}</div>
+                 <div style={{ fontSize: '1.5vw' }}>{now.toLocaleDateString(lang === 'en' ? 'en-US' : lang, { weekday: 'long', day: 'numeric', month: 'long' })}</div>
+               </div>
+               <div style={{ display: 'flex', gap: '0.5vw', alignItems: 'baseline', fontSize: '5vw', fontWeight: 900 }}>
+                 <span>{pad(now.getHours())}</span>
+                 <span className="animate-pulse">:</span>
+                 <span>{pad(now.getMinutes())}</span>
+               </div>
+             </div>
+
+             {/* Next Prayer Countdown Widget */}
+             <div style={{ textAlign: 'center', padding: '1.5vw', background: 'linear-gradient(90deg, rgba(255,255,255,0.02), rgba(255,255,255,0.08))', borderRadius: '1.5vw' }}>
+               <div style={{ fontSize: '1.2vw', color: 'rgba(255,255,255,0.7)', textTransform: 'uppercase' }}>{L(lang, 'nextPrayer')}</div>
+               <div style={{ fontSize: '3.5vw', fontWeight: 'bold', color: customGold }}>
+                 {Lpn(lang, nextP.key)} - {cnt}
+               </div>
+             </div>
+
+             {/* Slide Area - dynamic */}
+             <div style={{ flex: 1, background: 'rgba(0,0,0,0.4)', borderRadius: '2vw', position: 'relative', overflow: 'hidden' }}>
+               {/* Simplified static quote for now to simulate the carousel */}
+               <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', padding: '3vw', textAlign: 'center' }}>
+                 <div style={{ fontSize: '2vw', color: customAcc, marginBottom: '2vw' }}>{L(lang, 'quranLbl')}</div>
+                 <div style={{ fontSize: '3.5vw', lineHeight: '1.4' }}>وَمَا خَلَقْتُ الْجِنَّ وَالْإِنسَ إِلَّا لِيَعْبُدُونِ</div>
+                 <div style={{ fontSize: '2vw', color: 'rgba(255,255,255,0.7)', marginTop: '2vw' }}>"I created jinn and humans only to worship Me."</div>
+               </div>
+             </div>
+
+           </div>
+        </div>
+      </div>
     </div>
   )
 }

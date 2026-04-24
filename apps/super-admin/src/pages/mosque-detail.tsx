@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react"
 import { useParams, useNavigate } from "react-router-dom"
-import { useGetMosqueByIdQuery, useUpdateMosqueMutation, type Mosque } from "@/store/api/apiSlice"
-import { ArrowLeft, Loader2, Save, MonitorPlay } from "lucide-react"
+import { useGetMosqueByIdQuery, useUpdateMosqueMutation, type Mosque, type ThemeSettings } from "@/store/api/apiSlice"
+import { ArrowLeft, Loader2, Save, MonitorPlay, Image as ImageIcon } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { uploadToCloudinary } from "@/lib/cloudinary"
 
 export function MosqueDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -18,6 +19,8 @@ export function MosqueDetailPage() {
   const [updateMosque, { isLoading: isUpdating }] = useUpdateMosqueMutation()
 
   const [formData, setFormData] = useState<Partial<Mosque>>({})
+  const [isUploading, setIsUploading] = useState(false)
+  const [activeTab, setActiveTab] = useState("general")
 
   useEffect(() => {
     if (mosque) {
@@ -25,14 +28,39 @@ export function MosqueDetailPage() {
     }
   }, [mosque])
 
-  const handleChange = (field: keyof Mosque, value: string | number) => {
+  const handleChange = (field: keyof Mosque, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }))
+  }
+
+  const handleDeepChange = (parent: keyof Mosque, field: string, value: any) => {
+    setFormData(prev => ({
+      ...prev,
+      [parent]: {
+        ...(prev[parent] as any || {}),
+        [field]: value
+      }
+    }))
+  }
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    try {
+      setIsUploading(true)
+      const url = await uploadToCloudinary(file)
+      handleDeepChange("themeSettings", "bgImage", url)
+    } catch (error) {
+      alert("Image upload failed!")
+    } finally {
+      setIsUploading(false)
+    }
   }
 
   const handleSave = async () => {
     if (id) {
       await updateMosque({ id, data: formData })
-      navigate('/mosques')
+      alert("Changes saved successfully!")
     }
   }
 
@@ -44,154 +72,234 @@ export function MosqueDetailPage() {
     return <div className="text-center text-destructive mt-10">Mosque not found or error loading data.</div>
   }
 
+  const TABS = [
+    { id: "general", label: "General" },
+    { id: "tv_display", label: "TV Display Theme" },
+    { id: "prayer", label: "Prayer Logic" },
+  ]
+
   return (
-    <div className="space-y-6 max-w-4xl mx-auto">
-      <div className="flex items-center gap-4">
+    <div className="space-y-6 max-w-6xl mx-auto">
+      <div className="flex items-center gap-4 border-b border-border/40 pb-4">
         <Button variant="ghost" size="icon" onClick={() => navigate('/mosques')}>
           <ArrowLeft className="h-5 w-5" />
         </Button>
         <div>
           <div className="flex items-center gap-3">
             <h1 className="text-3xl font-bold tracking-tight">{mosque.name}</h1>
-            <Badge variant={mosque.status === 'Active' ? 'default' : mosque.status === 'Suspended' ? 'destructive' : 'secondary'} className={mosque.status === 'Active' ? "bg-green-500/10 text-green-600 hover:bg-green-500/20" : ""}>
+            <Badge variant={mosque.status === 'Active' ? 'default' : mosque.status === 'Suspended' ? 'destructive' : 'secondary'}>
               {mosque.status}
             </Badge>
           </div>
-          <p className="text-muted-foreground mt-1">ID: {mosque.mosqueId} • Last Active: {new Date(mosque.lastActive).toLocaleDateString()}</p>
+          <p className="text-muted-foreground mt-1 text-sm">ID: {mosque.mosqueId} • Central Control Hub</p>
         </div>
-        <div className="ml-auto">
+        <div className="ml-auto flex gap-2">
+           <Button variant="outline" onClick={() => window.open(`http://localhost:5174?id=${id}`, '_blank')}>
+            <MonitorPlay className="mr-2 h-4 w-4" /> Live Preview
+          </Button>
           <Button onClick={handleSave} disabled={isUpdating}>
             {isUpdating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-            Save Changes
+            Save & Sync to TV
           </Button>
         </div>
       </div>
 
+      <div className="flex gap-2">
+        {TABS.map(tab => (
+          <Button 
+            key={tab.id} 
+            variant={activeTab === tab.id ? "default" : "outline"} 
+            onClick={() => setActiveTab(tab.id)}
+          >
+            {tab.label}
+          </Button>
+        ))}
+      </div>
+
       <div className="grid gap-6 md:grid-cols-3">
         <div className="md:col-span-2 space-y-6">
-          <Card className="bg-card/50 backdrop-blur-sm border-border/60">
-            <CardHeader>
-              <CardTitle>General Information</CardTitle>
-              <CardDescription>Update mosque basic details and address.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">Mosque Name</Label>
-                <Input id="name" value={formData.name || ""} onChange={(e) => handleChange("name", e.target.value)} />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="address">Address</Label>
-                <Input id="address" value={formData.address || ""} onChange={(e) => handleChange("address", e.target.value)} />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
+          
+          {activeTab === "general" && (
+            <Card className="bg-card/50 backdrop-blur-sm border-border/60">
+              <CardHeader>
+                <CardTitle>Mosque Information</CardTitle>
+                <CardDescription>Core identity and location settings for Aladhan API</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="country">Country</Label>
-                  <Input id="country" value={formData.country || ""} onChange={(e) => handleChange("country", e.target.value)} />
+                  <Label>Mosque Name</Label>
+                  <Input value={formData.name || ""} onChange={(e) => handleChange("name", e.target.value)} />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="timezone">Timezone</Label>
-                  <Select value={formData.timezone || "Europe/London"} onValueChange={(val) => handleChange("timezone", val)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select Timezone" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Europe/London">Europe/London</SelectItem>
-                      <SelectItem value="America/New_York">America/New_York</SelectItem>
-                      <SelectItem value="Asia/Dhaka">Asia/Dhaka</SelectItem>
-                      <SelectItem value="Asia/Dubai">Asia/Dubai</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <Label>Address / Sub-title</Label>
+                  <Input value={formData.address || ""} onChange={(e) => handleChange("address", e.target.value)} />
                 </div>
-              </div>
-            </CardContent>
-          </Card>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Country</Label>
+                    <Input value={formData.country || ""} onChange={(e) => handleChange("country", e.target.value)} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>City (For Prayer API)</Label>
+                    <Input value={formData.city || ""} onChange={(e) => handleChange("city", e.target.value)} />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
-          <Card className="bg-card/50 backdrop-blur-sm border-border/60">
-            <CardHeader>
-              <CardTitle>Display & Content Settings</CardTitle>
-              <CardDescription>Configure how this mosque's TV screens look and read in real-time.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="orientation">TV Orientation</Label>
-                  <Select value={formData.orientation || "landscape"} onValueChange={(val) => handleChange("orientation", val)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select Orientation" />
-                    </SelectTrigger>
+          {activeTab === "tv_display" && (
+            <>
+              <Card className="bg-card/50 backdrop-blur-sm border-border/60">
+                <CardHeader>
+                  <CardTitle>TV Language & Theme</CardTitle>
+                  <CardDescription>Choose the core design layout and display language.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Display Language</Label>
+                      <Select value={formData.displayLang || "en"} onValueChange={(val) => handleChange("displayLang", val)}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="en">English</SelectItem>
+                          <SelectItem value="it">Italiano</SelectItem>
+                          <SelectItem value="ar">العربية (Arabic)</SelectItem>
+                          <SelectItem value="bn">বাংলা (Bengali)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>TV Design Preset</Label>
+                      <Select value={formData.themeSettings?.tvDesign || "A"} onValueChange={(val) => handleDeepChange("themeSettings", "tvDesign", val)}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="A">Theme A (Dark Blue)</SelectItem>
+                          <SelectItem value="E">Theme E (Light Minimal)</SelectItem>
+                          <SelectItem value="H">Theme H (Masjid Al-Rahman)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-card/50 backdrop-blur-sm border-border/60">
+                <CardHeader>
+                  <CardTitle>Background Styling</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex flex-col gap-3">
+                    <Label>Background Image (Cloudinary)</Label>
+                    <div className="flex items-center gap-4">
+                      {formData.themeSettings?.bgImage ? (
+                        <div className="relative w-32 h-20 rounded-md overflow-hidden bg-black flex-shrink-0">
+                          <img src={formData.themeSettings.bgImage} className="object-cover w-full h-full opacity-80" alt="bg" />
+                        </div>
+                      ) : (
+                        <div className="w-32 h-20 rounded-md bg-muted flex items-center justify-center border border-dashed flex-shrink-0">
+                          <ImageIcon className="h-6 w-6 text-muted-foreground" />
+                        </div>
+                      )}
+                      <div className="flex-1">
+                        <Input type="file" accept="image/*" onChange={handleImageUpload} disabled={isUploading} className="mb-2" />
+                        <p className="text-xs text-muted-foreground">Upload a vibrant scenery image. It will be automatically blurred based on the setting below.</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-6 mt-4">
+                    <div className="space-y-2">
+                      <Label>Overlay Opacity (Dark Tint): {formData.themeSettings?.bgOpacity || '0.85'}</Label>
+                      <input 
+                        type="range" className="w-full" min="0" max="1" step="0.05" 
+                        value={formData.themeSettings?.bgOpacity || '0.85'} 
+                        onChange={(e) => handleDeepChange("themeSettings", "bgOpacity", e.target.value)} 
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Background Blur: {formData.themeSettings?.bgBlur || '0'}px</Label>
+                      <input 
+                        type="range" className="w-full" min="0" max="40" step="1" 
+                        value={formData.themeSettings?.bgBlur || '0'} 
+                        onChange={(e) => handleDeepChange("themeSettings", "bgBlur", e.target.value)} 
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-4 pt-4 border-t border-border/40">
+                    <div className="space-y-2">
+                      <Label>Accent Color</Label>
+                      <div className="flex gap-2">
+                        <input type="color" className="h-9 w-12 cursor-pointer bg-transparent" value={formData.themeSettings?.customAcc || '#00d4ff'} onChange={(e) => handleDeepChange("themeSettings", "customAcc", e.target.value)} />
+                        <Input value={formData.themeSettings?.customAcc || '#00d4ff'} onChange={(e) => handleDeepChange("themeSettings", "customAcc", e.target.value)} />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Gold Output</Label>
+                      <div className="flex gap-2">
+                        <input type="color" className="h-9 w-12 cursor-pointer bg-transparent" value={formData.themeSettings?.customGold || '#ffd700'} onChange={(e) => handleDeepChange("themeSettings", "customGold", e.target.value)} />
+                        <Input value={formData.themeSettings?.customGold || '#ffd700'} onChange={(e) => handleDeepChange("themeSettings", "customGold", e.target.value)} />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Iqamah Color</Label>
+                      <div className="flex gap-2">
+                        <input type="color" className="h-9 w-12 cursor-pointer bg-transparent" value={formData.themeSettings?.customIq || '#00ff88'} onChange={(e) => handleDeepChange("themeSettings", "customIq", e.target.value)} />
+                        <Input value={formData.themeSettings?.customIq || '#00ff88'} onChange={(e) => handleDeepChange("themeSettings", "customIq", e.target.value)} />
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </>
+          )}
+
+          {activeTab === "prayer" && (
+            <Card className="bg-card/50 backdrop-blur-sm border-border/60">
+               <CardHeader>
+                <CardTitle>Prayer Method & Jumu'ah</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                 <div className="space-y-2">
+                  <Label>Calculation Method</Label>
+                  <Select value={formData.prayerConfig?.method || "3"} onValueChange={(val) => handleDeepChange("prayerConfig", "method", val)}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="landscape">Landscape (Standard)</SelectItem>
-                      <SelectItem value="portrait">Portrait (Vertical)</SelectItem>
+                      <SelectItem value="3">3 — Muslim World League</SelectItem>
+                      <SelectItem value="2">2 — ISNA</SelectItem>
+                      <SelectItem value="5">5 — Egyptian</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="theme">Display Theme</Label>
-                  <Select value={formData.theme || "dark"} onValueChange={(val) => handleChange("theme", val)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select Theme" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="dark">Dark Mode (Default)</SelectItem>
-                      <SelectItem value="light">Light Mode</SelectItem>
-                      <SelectItem value="emerald">Emerald Theme</SelectItem>
-                    </SelectContent>
-                  </Select>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Jumu'ah Iqamah Time</Label>
+                    <Input type="time" value={formData.prayerConfig?.jumuahIq || "13:30"} onChange={(e) => handleDeepChange("prayerConfig", "jumuahIq", e.target.value)} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Jumu'ah Label Override</Label>
+                    <Input value={formData.prayerConfig?.jumuahNote || "Friday Prayer — Iqamah"} onChange={(e) => handleDeepChange("prayerConfig", "jumuahNote", e.target.value)} />
+                  </div>
                 </div>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="ticker">Scrolling News Ticker Text</Label>
-                <Input id="ticker" placeholder="e.g., Please donate generously..." value={formData.tickerText || ""} onChange={(e) => handleChange("tickerText", e.target.value)} />
-                <p className="text-xs text-muted-foreground">This text will scroll horizontally at the bottom of the TV screen.</p>
-              </div>
-            </CardContent>
-          </Card>
+                <div className="mt-4 pt-4 border-t border-border/40 text-sm text-yellow-600 dark:text-yellow-400">
+                  ⚠️ Note: Daily Iqamah fixed/delay overrides will be added here in phase 2. Right now it pulls realtime Adhan automatically.
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
         </div>
 
+        {/* Right Sidebar */}
         <div className="space-y-6">
-          <Card className="bg-card/50 backdrop-blur-sm border-border/60">
-            <CardHeader>
-              <CardTitle>Subscription & Status</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="status">Status</Label>
-                <Select value={formData.status} onValueChange={(val) => handleChange("status", val)}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Active">Active</SelectItem>
-                    <SelectItem value="Suspended">Suspended</SelectItem>
-                    <SelectItem value="Trial">Trial</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="plan">Plan</Label>
-                <Select value={formData.plan} onValueChange={(val) => handleChange("plan", val)}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Free">Free</SelectItem>
-                    <SelectItem value="Basic">Basic</SelectItem>
-                    <SelectItem value="Pro">Pro</SelectItem>
-                    <SelectItem value="Enterprise">Enterprise</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </CardContent>
-          </Card>
-
           <Card className="bg-primary/5 border-primary/20">
             <CardHeader className="pb-2">
-              <CardTitle className="text-xl flex items-center gap-2 font-bold"><MonitorPlay className="h-5 w-5 text-primary" /> TV Screens</CardTitle>
+              <CardTitle className="text-xl flex items-center gap-2 font-bold"><MonitorPlay className="h-5 w-5 text-primary" /> TV Hardware Status</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-bold">{mosque.screensCount}</div>
               <p className="text-sm text-muted-foreground mt-1">Currently active displays</p>
-              <Button variant="outline" className="w-full mt-4 bg-background">Manage Screens</Button>
             </CardContent>
           </Card>
         </div>
