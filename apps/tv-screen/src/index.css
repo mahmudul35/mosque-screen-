@@ -1,28 +1,13 @@
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800;900&family=Amiri:wght@400;700&family=Noto+Kufi+Arabic:wght@700&family=Hind+Siliguri:wght@400;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&family=DM+Mono:wght@400;500&family=Amiri:wght@400;700&family=Noto+Kufi+Arabic:wght@700&family=Hind+Siliguri:wght@400;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-@layer base {
-  :root {
-    --ta: #00d4ff;
-    --tg: #ffd700;
-    --ti: #00ff88;
-    --font: 'Outfit', sans-serif;
-  }
-}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { width: 100%; height: 100%; overflow: hidden; background: #020309; }
 
-body {
-  margin: 0;
-  padding: 0;
-  background-color: #000;
-  font-family: var(--font);
-  color: white;
-  overflow: hidden;
-}
-
-/* Software Portrait Mode Engine */
+/* Portrait software rotation for vertical TV mounts */
 .tv-orientation-software-portrait {
   transform: rotate(-90deg);
   transform-origin: top left;
@@ -31,68 +16,9 @@ body {
   left: 0;
   width: 100vh;
   height: 100vw;
-  overflow: hidden;
 }
-
 .tv-orientation-software-landscape {
   width: 100vw;
   height: 100vh;
   position: relative;
-  overflow: hidden;
 }
-
-/* Animations from Reference Design */
-@keyframes tvSpin {
-  0% { transform: translate(-50%, -50%) rotate(0deg); }
-  100% { transform: translate(-50%, -50%) rotate(360deg); }
-}
-
-@keyframes tvFloat {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-3px); }
-}
-
-@keyframes tvScaleIn {
-  0% { transform: scale(0.9); opacity: 0; }
-  100% { transform: scale(1); opacity: 1; }
-}
-
-@keyframes tvPulse {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.08); }
-}
-
-@keyframes tvFadeUp {
-  0% { transform: translateY(15px); opacity: 0; }
-  100% { transform: translateY(0); opacity: 1; }
-}
-
-@keyframes tvBounce {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-12px); }
-}
-
-@keyframes tvBroom {
-  0%, 100% { transform: rotate(0deg); }
-  25% { transform: rotate(15deg); }
-  75% { transform: rotate(-15deg); }
-}
-
-@keyframes tvScroll {
-  from { transform: translateX(0); }
-  to { transform: translateX(-100%); }
-}
-
-@keyframes glowPulse {
-  0%, 100% { opacity: 0.8; filter: drop-shadow(0 0 8px rgba(0,212,255,0.4)); }
-  50% { opacity: 1; filter: drop-shadow(0 0 16px rgba(0,212,255,0.7)); }
-}
-
-/* Utility classes for animations to use within React seamlessly */
-.animate-tvSpin { animation: tvSpin 2s linear infinite; }
-.animate-tvFloat { animation: tvFloat 3s ease-in-out infinite; }
-.animate-tvScaleIn { animation: tvScaleIn 0.5s ease forwards; }
-.animate-tvPulse { animation: tvPulse 2s ease-in-out infinite; }
-.animate-tvFadeUp { animation: tvFadeUp 0.5s ease forwards; }
-.animate-tvBounce { animation: tvBounce 2s ease-in-out infinite; }
-.animate-tvBroom { animation: tvBroom 2s ease-in-out infinite; transform-origin: bottom center; }
