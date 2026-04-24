@@ -11,6 +11,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { uploadToCloudinary } from "@/lib/cloudinary"
 
+import { PrayerLogicGrid } from "@/components/admin/PrayerLogicGrid"
+import { ContentBuilder } from "@/components/admin/ContentBuilder"
+import { AnnouncementBuilder } from "@/components/admin/AnnouncementBuilder"
+
 export function MosqueDetailPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
@@ -76,8 +80,10 @@ export function MosqueDetailPage() {
     { id: "general", label: "General" },
     { id: "tv_display", label: "TV Display Theme" },
     { id: "typography", label: "Typography" },
-    { id: "slides", label: "Slides & Content" },
     { id: "prayer", label: "Prayer Logic" },
+    { id: "slides", label: "Slides & Duration" },
+    { id: "content", label: "Custom Content" },
+    { id: "announcements", label: "Announcements" },
   ]
 
   return (
@@ -179,6 +185,18 @@ export function MosqueDetailPage() {
                           <SelectItem value="A">Theme A (Dark Blue)</SelectItem>
                           <SelectItem value="E">Theme E (Light Minimal)</SelectItem>
                           <SelectItem value="H">Theme H (Masjid Al-Rahman)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>TV Orientation</Label>
+                      <Select value={formData.orientation || "landscape"} onValueChange={(val) => handleChange("orientation", val)}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select Orientation" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="landscape">Landscape (Standard)</SelectItem>
+                          <SelectItem value="portrait">Portrait (Vertical)</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -380,11 +398,12 @@ export function MosqueDetailPage() {
           {activeTab === "prayer" && (
             <Card className="bg-card/50 backdrop-blur-sm border-border/60">
                <CardHeader>
-                <CardTitle>Prayer Method & Jumu'ah</CardTitle>
+                <CardTitle>Detailed Prayer & Iqamah Settings</CardTitle>
+                <CardDescription>Setup calculation methods and minute-by-minute Iqamah intervals.</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-6">
                  <div className="space-y-2">
-                  <Label>Calculation Method</Label>
+                  <Label>Calculation Method (Aladhan API)</Label>
                   <Select value={formData.prayerConfig?.method || "3"} onValueChange={(val) => handleDeepChange("prayerConfig", "method", val)}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
@@ -404,11 +423,21 @@ export function MosqueDetailPage() {
                     <Input value={formData.prayerConfig?.jumuahNote || "Friday Prayer — Iqamah"} onChange={(e) => handleDeepChange("prayerConfig", "jumuahNote", e.target.value)} />
                   </div>
                 </div>
-                <div className="mt-4 pt-4 border-t border-border/40 text-sm text-yellow-600 dark:text-yellow-400">
-                  ⚠️ Note: Daily Iqamah fixed/delay overrides will be added here in phase 2. Right now it pulls realtime Adhan automatically.
+
+                <div className="pt-4 border-t border-border/40">
+                  <h4 className="font-bold mb-4">Daily Iqamah Intervals</h4>
+                  <PrayerLogicGrid formData={formData} handleDeepChange={handleDeepChange} />
                 </div>
               </CardContent>
             </Card>
+          )}
+
+          {activeTab === "content" && (
+            <ContentBuilder formData={formData} handleChange={handleChange} />
+          )}
+
+          {activeTab === "announcements" && (
+            <AnnouncementBuilder formData={formData} handleChange={handleChange} />
           )}
 
         </div>

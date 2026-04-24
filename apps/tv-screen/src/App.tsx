@@ -1,213 +1,356 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { doc, onSnapshot } from 'firebase/firestore'
 import { db } from './lib/firebase'
 import { toHijri, addMins, pad } from './lib/time'
-import { L, Lpn, LANG_DATA } from './lib/lang'
+import { L, Lpn } from './lib/lang'
 import { usePrayers, PMETA } from './hooks/usePrayers'
 
 function App() {
   const [mosqueData, setMosqueData] = useState<any>(null)
   const [error, setError] = useState<string | null>(null)
   const [now, setNow] = useState(new Date())
+  const [slideIndex, setSlideIndex] = useState(0)
 
-  // Config data
-  const theme = mosqueData?.themeSettings?.tvDesign || 'A'
   const lang = mosqueData?.displayLang || 'en'
-  const isLight = theme === 'E' || theme === 'E2'
-  const isH = theme === 'H'
 
   const { apiData } = usePrayers(mosqueData)
 
-  // 1. Firebase Listener
+  // ── ALL HOOKS BEFORE ANY EARLY RETURN ──
+
+  // 1. Firebase listener
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
     const docId = params.get('id')
-    if (!docId) {
-      setError("Mosque ID is missing. Add ?id=YOUR_DOC_ID")
-      return
-    }
-    const unsub = onSnapshot(doc(db, "mosques", docId), (docSnap) => {
-      if (docSnap.exists()) setMosqueData(docSnap.data())
+    if (!docId) { setError("Mosque ID is missing. Add ?id=YOUR_DOC_ID"); return }
+    const unsub = onSnapshot(doc(db, "mosques", docId), (snap) => {
+      if (snap.exists()) setMosqueData(snap.data())
       else setError("Mosque not found.")
     }, (e) => setError(e.message))
-
     return () => unsub()
   }, [])
 
   // 2. Clock Tick
   useEffect(() => {
-    const timer = setInterval(() => setNow(new Date()), 1000)
-    return () => clearInterval(timer)
+    const t = setInterval(() => setNow(new Date()), 1000)
+    return () => clearInterval(t)
   }, [])
 
-  if (error) return <div className="text-red-500 text-center mt-20 text-2xl">{error}</div>
-  if (!mosqueData) return <div className="text-white text-center mt-20 text-2xl">Loading Mosque Data...</div>
+  // 3. Build slide list
+  const slides = useMemo(() => {
+    if (!mosqueData) return [{ type: 'fallback' }]
+    const s: any[] = []
+    if (mosqueData?.slideConfig?.showQuran !== '0') {
+      const q = mosqueData?.contentItems?.filter((c: any) => c.type === 'quran') || []
+      q.forEach((i: any) => s.push({ type: 'content', title: L(lang, 'quranLbl'), data: i }))
+    }
+    if (mosqueData?.slideConfig?.showHadith !== '0') {
+      const h = mosqueData?.contentItems?.filter((c: any) => c.type === 'hadith') || []
+      h.forEach((i: any) => s.push({ type: 'content', title: L(lang, 'hadithLbl'), data: i }))
+    }
+    if (mosqueData?.slideConfig?.showAnn !== '0') {
+      const a = mosqueData?.annItems?.filter((c: any) => c.visible !== false) || []
+      a.forEach((i: any) => s.push({ type: 'ann', data: i }))
+    }
+    if (mosqueData?.slideConfig?.showDars !== '0') s.push({ type: 'dars', data: mosqueData?.slideConfig })
+    if (mosqueData?.slideConfig?.showClean !== '0') s.push({ type: 'clean' })
+    return s.length > 0 ? s : [{ type: 'fallback' }]
+  }, [mosqueData, lang])
 
-  // --- Dynamic Styles ---
-  const customAcc = mosqueData?.themeSettings?.customAcc || '#00d4ff'
+  const durMs = parseInt(mosqueData?.slideConfig?.slideDur || '10') * 1000
+
+  // 4. Slide timer
+  useEffect(() => {
+    if (slides.length <= 1) return
+    const t = setInterval(() => setSlideIndex(prev => (prev + 1) % slides.length), durMs)
+    return () => clearInterval(t)
+  }, [slides.length, durMs])
+
+  // ── EARLY RETURNS ──
+  if (error) return (
+    <div style={{ color: '#ff4444', textAlign: 'center', marginTop: '20vh', fontSize: '3vw', background: '#000', height: '100vh' }}>
+      {error}
+    </div>
+  )
+  if (!mosqueData) return (
+    <div style={{ color: '#fff', textAlign: 'center', marginTop: '20vh', fontSize: '3vw', background: '#000', height: '100vh' }}>
+      Loading Mosque Data...
+    </div>
+  )
+
+  // ── COMPUTED VALUES ──
+  const customAcc  = mosqueData?.themeSettings?.customAcc  || '#00d4ff'
   const customGold = mosqueData?.themeSettings?.customGold || '#ffd700'
-  const customIq = mosqueData?.themeSettings?.customIq || '#00ff88'
-  const bgBlur = mosqueData?.themeSettings?.bgBlur || '0'
-  const bgOpacity = mosqueData?.themeSettings?.bgOpacity || '0.85'
-  const dsBg = mosqueData?.themeSettings?.bgImage
+  const customIq   = mosqueData?.themeSettings?.customIq   || '#00ff88'
+  const bgBlur     = parseInt(mosqueData?.themeSettings?.bgBlur  || '0')
+  const bgOpacity  = parseFloat(mosqueData?.themeSettings?.bgOpacity || '0.85')
+  const dsBg       = mosqueData?.themeSettings?.bgImage
 
-  const orientationClass = mosqueData?.orientation === 'portrait' 
-    ? 'tv-orientation-software-portrait' 
+  const fsClock = mosqueData?.typography?.fsClock ? `${parseInt(mosqueData.typography.fsClock)/10}vw` : '8vw'
+  const fsAdhan = mosqueData?.typography?.fsAdhan ? `${parseInt(mosqueData.typography.fsAdhan)/10}vw` : '2.5vw'
+  const fsIq    = mosqueData?.typography?.fsIq    ? `${parseInt(mosqueData.typography.fsIq)/20}vw`   : '1.7vw'
+  const fsNm    = mosqueData?.typography?.fsNm    ? `${parseInt(mosqueData.typography.fsNm)/10}vw`   : '2vw'
+  const fsSlide = mosqueData?.typography?.fsSlide ? `${parseInt(mosqueData.typography.fsSlide)/10}vw` : '2.5vw'
+  const fsAr    = mosqueData?.typography?.fsAr    ? `${parseInt(mosqueData.typography.fsAr)/10}vw`   : '3.5vw'
+
+  const orientationClass = mosqueData?.orientation === 'portrait'
+    ? 'tv-orientation-software-portrait'
     : 'tv-orientation-software-landscape'
 
-  const fsClock = mosqueData?.typography?.fsClock || '88'
-  const fsAdhan = mosqueData?.typography?.fsAdhan || '25'
-  const fsIq = mosqueData?.typography?.fsIq || '34'
-  const fsNm = mosqueData?.typography?.fsNm || '10'
-  const fsSlide = mosqueData?.typography?.fsSlide || '14'
-  const fsAr = mosqueData?.typography?.fsAr || '28'
+  // Active prayer
+  const nowMins = now.getHours() * 60 + now.getMinutes()
+  let activeIdx = 0
+  PMETA.forEach((p, i) => {
+    const [h, m] = (apiData[p.key]?.adhan || '00:00').split(':').map(Number)
+    if (nowMins >= h * 60 + m) activeIdx = i
+  })
 
-  // Determine Next Prayer & Active Prayer
-  const getActive = () => {
-    const t = now.getHours() * 60 + now.getMinutes()
-    const ts = PMETA.map(p => {
-      const [h, m] = (apiData[p.key]?.adhan || '00:00').split(':').map(Number)
-      return h * 60 + m
-    })
-    let a = 0; for (let i = 0; i < ts.length; i++) if (t >= ts[i]) a = i;
-    return a
+  // Next prayer countdown
+  const nowSec = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds()
+  let nextP = { key: 'Fajr', diff: 0 }
+  for (const p of PMETA) {
+    const [h, m] = (apiData[p.key]?.adhan || '00:00').split(':').map(Number)
+    const diff = h * 3600 + m * 60 - nowSec
+    if (diff > 0) { nextP = { key: p.key, diff }; break }
   }
-  const activeIdx = getActive()
-
-  const getNextPrayerDiff = () => {
-    const sec = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds()
-    for (const p of PMETA) {
-      const [h, m] = (apiData[p.key]?.adhan || '00:00').split(':').map(Number)
-      const diff = h * 3600 + m * 60 - sec
-      if (diff > 0) return { key: p.key, diff }
-    }
-    return { key: 'Fajr', diff: 0 } // Tomorrow logic simplified
-  }
-  const nextP = getNextPrayerDiff()
+  const cnt = `${pad(Math.floor(nextP.diff / 3600))}:${pad(Math.floor((nextP.diff % 3600) / 60))}:${pad(nextP.diff % 60)}`
 
   const computeIq = (key: string) => {
     const pt = mosqueData?.prayerConfig?.prayerTimes?.[key]
     if (key === 'Shuruq') return null
-    if (!pt) return addMins(apiData[key]?.adhan || '00:00', 20) // Default +20m
+    if (!pt) return addMins(apiData[key]?.adhan || '00:00', 15)
     if (pt.m === 'fixed') return pt.iq
-    if (pt.m === 'delay') return addMins(apiData[key]?.adhan || '00:00', pt.d || 0)
+    if (pt.m === 'delay') return addMins(apiData[key]?.adhan || '00:00', pt.d || 15)
     return null
   }
 
-  // Next Prayer formatting
-  const hh = Math.floor(nextP.diff / 3600)
-  const mm = Math.floor((nextP.diff % 3600) / 60)
-  const ss = nextP.diff % 60
-  const cnt = `${pad(hh)}:${pad(mm)}:${pad(ss)}`
+  const activeSlide = slides[slideIndex] || slides[0]
+  const blinkOn = now.getSeconds() % 2 === 0
 
   return (
     <div className={orientationClass}>
-      {/* Background System */}
-      <div 
-        id="tv-bgl" 
-        style={{
-          position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 0,
-          backgroundImage: dsBg ? `url('${dsBg}')` : 'none',
+      {/* Background image layer */}
+      {dsBg && (
+        <div style={{
+          position: 'absolute', inset: 0, zIndex: 0,
+          backgroundImage: `url('${dsBg}')`,
           backgroundSize: 'cover', backgroundPosition: 'center',
-          filter: bgBlur ? `blur(${bgBlur}px)` : 'none',
-          transform: bgBlur ? 'scale(1.06)' : 'none'
-        }} 
-      />
-      <div 
-        id="tv-bgo" 
-        style={{
-          position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 1,
-          background: 'rgba(5,7,15,.95)',
-          opacity: dsBg ? bgOpacity : 1,
-          transition: 'opacity 1s ease'
-        }} 
-      />
+          filter: bgBlur > 0 ? `blur(${bgBlur}px)` : 'none',
+          transform: bgBlur > 0 ? 'scale(1.06)' : 'none',
+        }} />
+      )}
+      {/* Dark overlay */}
+      <div style={{
+        position: 'absolute', inset: 0, zIndex: 1,
+        background: 'rgba(5,7,15,.97)',
+        opacity: dsBg ? bgOpacity : 1,
+        transition: 'opacity 1s ease',
+      }} />
 
-      <div 
-        id="tv" 
-        data-t={theme}
-        style={{
-          position: 'relative', zIndex: 2, width: '100%', height: '100%',
-          display: 'flex', flexDirection: 'column',
-          ['--ta' as string]: customAcc,
-          ['--tg' as string]: customGold,
-          ['--ti' as string]: customIq,
-        }}
-      >
-        {/* Render Theme specific structures based on the massive design guidelines... */}
-        <div style={{ display: 'flex', width: '100%', height: '100%', gap: '2vw', padding: '2vw' }}>
-           
-           {/* LEFT PANEL: Prayertimes */}
-           <div style={{ width: '35vw', background: 'rgba(255,255,255,0.05)', backdropFilter: 'blur(10px)', borderRadius: '2vw', padding: '2vw' }}>
-              <div style={{ textAlign: 'center', marginBottom: '2vw' }}>
-                <div style={{ fontSize: '2.5vw', fontWeight: 800 }}>{mosqueData.name}</div>
-                <div style={{ fontSize: '1.2vw', color: 'rgba(255,255,255,0.7)' }}>{mosqueData.address}</div>
-              </div>
+      {/* Main content */}
+      <div style={{
+        position: 'relative', zIndex: 2,
+        width: '100%', height: '100%',
+        display: 'flex', gap: '2vw', padding: '2vw', boxSizing: 'border-box',
+        fontFamily: "'Outfit', sans-serif", color: '#fff',
+        ['--ta' as string]: customAcc,
+        ['--tg' as string]: customGold,
+        ['--ti' as string]: customIq,
+      }}>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '1vw' }}>
-                {PMETA.map((p, i) => {
-                  const isActive = i === activeIdx
-                  const iq = computeIq(p.key)
-                  return (
-                    <div key={p.key} style={{
-                      display: 'flex', padding: '1vw', borderRadius: '1vw',
-                      background: isActive ? customAcc : 'rgba(255,255,255,0.02)',
-                      color: isActive ? '#000' : '#fff'
-                    }}>
-                      <div style={{ flex: 1, fontSize: `${(parseInt(fsNm)/10).toFixed(1)}vw`, fontWeight: 'bold' }}>{Lpn(lang, p.key)}</div>
-                      <div style={{ fontSize: `${(parseInt(fsAdhan)/10).toFixed(1)}vw` }}>{apiData[p.key]?.adhan || '--:--'}</div>
-                      {iq && (
-                        <div style={{ marginLeft: '1vw', fontSize: `${(parseInt(fsIq)/20).toFixed(1)}vw`, opacity: 0.8 }}>
-                          | {iq}
-                        </div>
-                      )}
+        {/* ── LEFT: Prayer Table ── */}
+        <div style={{
+          width: '34vw', background: 'rgba(255,255,255,0.04)',
+          backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)',
+          borderRadius: '2vw', padding: '2vw', boxSizing: 'border-box',
+          display: 'flex', flexDirection: 'column', gap: '1.2vw',
+          border: '1px solid rgba(255,255,255,0.07)',
+        }}>
+          {/* Mosque name */}
+          <div style={{ textAlign: 'center', paddingBottom: '1vw', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+            <div style={{ fontSize: '2.6vw', fontWeight: 800, lineHeight: 1.1 }}>{mosqueData.name}</div>
+            {mosqueData.address && (
+              <div style={{ fontSize: '1.1vw', color: 'rgba(255,255,255,0.5)', marginTop: '0.3vw' }}>{mosqueData.address}</div>
+            )}
+          </div>
+
+          {/* Prayer rows */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.7vw', flex: 1 }}>
+            {PMETA.map((p, i) => {
+              const isActive = i === activeIdx
+              const iq = computeIq(p.key)
+              return (
+                <div key={p.key} style={{
+                  display: 'flex', alignItems: 'center',
+                  padding: '0.9vw 1.2vw', borderRadius: '1vw',
+                  background: isActive ? customAcc : 'rgba(255,255,255,0.04)',
+                  color: isActive ? '#000' : '#fff',
+                  transition: 'all 0.5s ease',
+                  boxShadow: isActive ? `0 0 2vw ${customAcc}55` : 'none',
+                }}>
+                  <div style={{ flex: 1, fontSize: fsNm, fontWeight: 700 }}>{Lpn(lang, p.key)}</div>
+                  <div style={{ fontSize: fsAdhan, fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>
+                    {apiData[p.key]?.adhan || '--:--'}
+                  </div>
+                  {iq && (
+                    <div style={{ marginLeft: '1.2vw', fontSize: fsIq, opacity: 0.7 }}>
+                      | {iq}
                     </div>
-                  )
-                })}
+                  )}
+                </div>
+              )
+            })}
+          </div>
+
+          {/* Jumu'ah */}
+          <div style={{
+            padding: '0.8vw 1.2vw', borderRadius: '1vw', textAlign: 'center',
+            background: 'rgba(0,0,0,0.3)', border: `1px solid ${customGold}33`,
+          }}>
+            <div style={{ fontSize: '1.1vw', color: customGold, fontWeight: 600 }}>{L(lang, 'friday')}</div>
+            <div style={{ fontSize: '2.2vw', fontWeight: 800 }}>{mosqueData?.prayerConfig?.jumuahIq || '13:30'}</div>
+          </div>
+        </div>
+
+        {/* ── RIGHT: Clock + Slides ── */}
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '1.5vw', minWidth: 0 }}>
+
+          {/* Clock bar */}
+          <div style={{
+            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+            background: 'rgba(255,255,255,0.04)', backdropFilter: 'blur(12px)',
+            borderRadius: '2vw', padding: '1.4vw 2.5vw',
+            border: '1px solid rgba(255,255,255,0.07)',
+          }}>
+            <div>
+              <div style={{ fontSize: '1.3vw', color: customAcc, fontWeight: 600 }}>{toHijri(now)}</div>
+              <div style={{ fontSize: '1.3vw', color: 'rgba(255,255,255,0.65)', marginTop: '0.3vw' }}>
+                {now.toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'long' })}
               </div>
+            </div>
+            <div style={{ fontSize: fsClock, fontWeight: 900, fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.02em', lineHeight: 1 }}>
+              <span>{pad(now.getHours())}</span>
+              <span style={{ opacity: blinkOn ? 1 : 0.2, transition: 'opacity 0.4s' }}>:</span>
+              <span>{pad(now.getMinutes())}</span>
+            </div>
+          </div>
 
-              {/* Jumuah display */}
-              <div style={{ marginTop: '2vw', padding: '1vw', background: 'rgba(0,0,0,0.3)', borderRadius: '1vw', textAlign: 'center' }}>
-                <div style={{ fontSize: '1.2vw', color: customGold }}>{L(lang, 'friday')}</div>
-                <div style={{ fontSize: '2vw', fontWeight: 'bold' }}>{mosqueData?.prayerConfig?.jumuahIq || '13:30'}</div>
-              </div>
-           </div>
+          {/* Countdown */}
+          <div style={{
+            textAlign: 'center', padding: '0.9vw 2vw',
+            background: `linear-gradient(90deg, rgba(255,255,255,0.02), ${customAcc}18, rgba(255,255,255,0.02))`,
+            borderRadius: '1.5vw', border: `1px solid ${customAcc}22`,
+          }}>
+            <div style={{ fontSize: '1.1vw', color: 'rgba(255,255,255,0.55)', textTransform: 'uppercase', letterSpacing: '0.15em' }}>
+              {L(lang, 'nextPrayer')}
+            </div>
+            <div style={{ fontSize: '3vw', fontWeight: 800, color: customGold, fontVariantNumeric: 'tabular-nums' }}>
+              {Lpn(lang, nextP.key)} — {cnt}
+            </div>
+          </div>
 
-           {/* RIGHT PANEL: Clock & Slides */}
-           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '2vw' }}>
-             
-             {/* Clock Area */}
-             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(255,255,255,0.05)', backdropFilter: 'blur(10px)', borderRadius: '2vw', padding: '2vw' }}>
-               <div>
-                 <div style={{ fontSize: '1.5vw', color: customAcc }}>{toHijri(now)}</div>
-                 <div style={{ fontSize: '1.5vw' }}>{now.toLocaleDateString(lang === 'en' ? 'en-US' : lang, { weekday: 'long', day: 'numeric', month: 'long' })}</div>
-               </div>
-               <div style={{ display: 'flex', gap: '0.5vw', alignItems: 'baseline', fontSize: `${(parseInt(fsClock)/10).toFixed(1)}vw`, fontWeight: 900 }}>
-                 <span>{pad(now.getHours())}</span>
-                 <span className="animate-pulse">:</span>
-                 <span>{pad(now.getMinutes())}</span>
-               </div>
-             </div>
+          {/* Slide panel */}
+          <div style={{
+            flex: 1, borderRadius: '2vw', position: 'relative', overflow: 'hidden',
+            background: 'rgba(0,0,0,0.35)', border: '1px solid rgba(255,255,255,0.06)',
+            minHeight: 0,
+          }}>
+            <div
+              key={slideIndex}
+              className="animate-tvFadeUp"
+              style={{
+                position: 'absolute', inset: 0,
+                display: 'flex', flexDirection: 'column',
+                justifyContent: 'center', alignItems: 'center',
+                padding: '4vw', textAlign: 'center',
+              }}
+            >
+              {activeSlide.type === 'content' && (
+                <>
+                  <div style={{ fontSize: '1.3vw', color: customAcc, marginBottom: '1.5vw', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em' }}>{activeSlide.title}</div>
+                  <div style={{ fontSize: fsAr, lineHeight: 1.7, fontFamily: "'Amiri', serif" }} dir="rtl">{activeSlide.data.ar}</div>
+                  <div style={{ fontSize: fsSlide, color: 'rgba(255,255,255,0.68)', marginTop: '2vw', lineHeight: 1.5 }}>
+                    {activeSlide.data[lang] || activeSlide.data.en}
+                  </div>
+                  <div style={{ fontSize: '1vw', color: customGold, marginTop: '1vw' }}>{activeSlide.data.src}</div>
+                </>
+              )}
 
-             {/* Next Prayer Countdown Widget */}
-             <div style={{ textAlign: 'center', padding: '1.5vw', background: 'linear-gradient(90deg, rgba(255,255,255,0.02), rgba(255,255,255,0.08))', borderRadius: '1.5vw' }}>
-               <div style={{ fontSize: '1.2vw', color: 'rgba(255,255,255,0.7)', textTransform: 'uppercase' }}>{L(lang, 'nextPrayer')}</div>
-               <div style={{ fontSize: '3.5vw', fontWeight: 'bold', color: customGold }}>
-                 {Lpn(lang, nextP.key)} - {cnt}
-               </div>
-             </div>
+              {activeSlide.type === 'ann' && activeSlide.data.type === 'text' && (
+                <>
+                  <div style={{ fontSize: '5vw', marginBottom: '1vw' }}>{activeSlide.data.icon}</div>
+                  <div style={{ fontSize: fsSlide, fontWeight: 700, lineHeight: 1.3 }} dir={lang === 'ar' ? 'rtl' : 'ltr'}>
+                    {activeSlide.data[lang] || activeSlide.data.en}
+                  </div>
+                  <div style={{ fontSize: '1.7vw', color: customAcc, marginTop: '1vw' }}>
+                    {activeSlide.data[`sub${lang.charAt(0).toUpperCase()}${lang.slice(1)}`] || activeSlide.data.subEn}
+                  </div>
+                </>
+              )}
 
-             {/* Slide Area - dynamic */}
-             <div style={{ flex: 1, background: 'rgba(0,0,0,0.4)', borderRadius: '2vw', position: 'relative', overflow: 'hidden' }}>
-               {/* Simplified static quote for now to simulate the carousel */}
-               <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', padding: '3vw', textAlign: 'center' }}>
-                 <div style={{ fontSize: `1.5vw`, color: customAcc, marginBottom: '2vw' }}>{L(lang, 'quranLbl')}</div>
-                 <div style={{ fontSize: `${(parseInt(fsAr)/10).toFixed(1)}vw`, lineHeight: '1.4' }}>وَمَا خَلَقْتُ الْجِنَّ وَالْإِنسَ إِلَّا لِيَعْبُدُونِ</div>
-                 <div style={{ fontSize: `${(parseInt(fsSlide)/10).toFixed(1)}vw`, color: 'rgba(255,255,255,0.7)', marginTop: '2vw' }}>"I created jinn and humans only to worship Me."</div>
-               </div>
-             </div>
+              {activeSlide.type === 'ann' && activeSlide.data.type === 'photo' && (
+                <div style={{
+                  position: 'absolute', inset: 0,
+                  backgroundImage: `url(${activeSlide.data.photo})`,
+                  backgroundSize: 'cover', backgroundPosition: 'center', borderRadius: 'inherit',
+                }}>
+                  {(activeSlide.data[lang] || activeSlide.data.en) && (
+                    <div style={{ position: 'absolute', bottom: '2vw', left: '2vw', right: '2vw', background: 'rgba(0,0,0,0.82)', padding: '1vw', borderRadius: '1vw', fontSize: '2vw', fontWeight: 700 }}>
+                      {activeSlide.data[lang] || activeSlide.data.en}
+                    </div>
+                  )}
+                </div>
+              )}
 
-           </div>
+              {activeSlide.type === 'dars' && (
+                <>
+                  <div style={{ fontSize: '1.5vw', background: customAcc, color: '#000', padding: '0.5vw 2vw', borderRadius: '2vw', marginBottom: '2vw', fontWeight: 700 }}>
+                    {activeSlide.data.darsTag || 'Weekly Invitation'}
+                  </div>
+                  <div style={{ fontSize: fsSlide, fontWeight: 800 }}>{activeSlide.data.darsTitle || 'Weekly Dars'}</div>
+                  <div style={{ fontSize: '2vw', color: customGold, margin: '1vw 0' }}>
+                    {activeSlide.data.darsDay} • {activeSlide.data.darsTime}
+                  </div>
+                  <div style={{ fontSize: '1.5vw' }}>📍 {activeSlide.data.darsPlace}</div>
+                  <div style={{ fontSize: '1vw', color: 'rgba(255,255,255,0.4)', marginTop: '1.5vw' }}>{activeSlide.data.darsNote}</div>
+                </>
+              )}
+
+              {activeSlide.type === 'clean' && (
+                <>
+                  <div style={{ fontSize: '5vw', marginBottom: '1vw' }}>🧹</div>
+                  <div style={{ fontSize: fsSlide, fontWeight: 700 }}>{L(lang, 'cleanTitle')}</div>
+                  <div style={{ fontSize: '1.7vw', color: customAcc, marginTop: '1vw' }}>{L(lang, 'cleanSub')}</div>
+                </>
+              )}
+
+              {activeSlide.type === 'fallback' && (
+                <>
+                  <div style={{ fontSize: '1.3vw', color: customAcc, marginBottom: '2vw', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em' }}>{L(lang, 'quranLbl')}</div>
+                  <div style={{ fontSize: fsAr, lineHeight: 1.7, fontFamily: "'Amiri', serif" }}>
+                    وَمَا خَلَقْتُ الْجِنَّ وَالْإِنسَ إِلَّا لِيَعْبُدُونِ
+                  </div>
+                  <div style={{ fontSize: fsSlide, color: 'rgba(255,255,255,0.65)', marginTop: '2vw' }}>
+                    "I created jinn and humans only to worship Me."
+                  </div>
+                </>
+              )}
+
+              {/* Slide progress dots */}
+              {slides.length > 1 && (
+                <div style={{ position: 'absolute', bottom: '1.5vw', display: 'flex', gap: '0.5vw' }}>
+                  {slides.map((_, i) => (
+                    <div key={i} style={{
+                      width: i === slideIndex ? '2vw' : '0.6vw',
+                      height: '0.6vw', borderRadius: '0.3vw',
+                      background: i === slideIndex ? customAcc : 'rgba(255,255,255,0.25)',
+                      transition: 'all 0.4s ease',
+                    }} />
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
         </div>
       </div>
     </div>
