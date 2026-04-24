@@ -75,6 +75,8 @@ export function MosqueDetailPage() {
   const TABS = [
     { id: "general", label: "General" },
     { id: "tv_display", label: "TV Display Theme" },
+    { id: "typography", label: "Typography" },
+    { id: "slides", label: "Slides & Content" },
     { id: "prayer", label: "Prayer Logic" },
   ]
 
@@ -253,6 +255,126 @@ export function MosqueDetailPage() {
                 </CardContent>
               </Card>
             </>
+          )}
+
+          {activeTab === "typography" && (
+            <Card className="bg-card/50 backdrop-blur-sm border-border/60">
+              <CardHeader>
+                <CardTitle>Typography Engine</CardTitle>
+                <CardDescription>Adjust font sizes globally. Note: TV engine uses viewport width (vw), so 20 means 20% of screen width.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="grid grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <div className="flex justify-between"><Label>Main Clock Size</Label><span className="text-sm font-bold text-primary">{formData.typography?.fsClock || '88'}vw</span></div>
+                    <input type="range" className="w-full" min="30" max="150" step="1" value={formData.typography?.fsClock || '88'} onChange={(e) => handleDeepChange("typography", "fsClock", e.target.value)} />
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex justify-between"><Label>Adhan Number Size</Label><span className="text-sm font-bold text-primary">{formData.typography?.fsAdhan || '25'}vw</span></div>
+                    <input type="range" className="w-full" min="15" max="50" step="1" value={formData.typography?.fsAdhan || '25'} onChange={(e) => handleDeepChange("typography", "fsAdhan", e.target.value)} />
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex justify-between"><Label>Iqamah Countdown Size</Label><span className="text-sm font-bold text-primary">{formData.typography?.fsIq || '34'}vw</span></div>
+                    <input type="range" className="w-full" min="20" max="80" step="1" value={formData.typography?.fsIq || '34'} onChange={(e) => handleDeepChange("typography", "fsIq", e.target.value)} />
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex justify-between"><Label>Prayer Name Size</Label><span className="text-sm font-bold text-primary">{formData.typography?.fsNm || '10'}vw</span></div>
+                    <input type="range" className="w-full" min="8" max="25" step="1" value={formData.typography?.fsNm || '10'} onChange={(e) => handleDeepChange("typography", "fsNm", e.target.value)} />
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex justify-between"><Label>Slide Text Size</Label><span className="text-sm font-bold text-primary">{formData.typography?.fsSlide || '14'}vw</span></div>
+                    <input type="range" className="w-full" min="8" max="30" step="1" value={formData.typography?.fsSlide || '14'} onChange={(e) => handleDeepChange("typography", "fsSlide", e.target.value)} />
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex justify-between"><Label>Arabic Quote Size</Label><span className="text-sm font-bold text-primary">{formData.typography?.fsAr || '28'}vw</span></div>
+                    <input type="range" className="w-full" min="15" max="50" step="1" value={formData.typography?.fsAr || '28'} onChange={(e) => handleDeepChange("typography", "fsAr", e.target.value)} />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {activeTab === "slides" && (
+            <div className="space-y-6">
+              <Card className="bg-card/50 backdrop-blur-sm border-border/60">
+                <CardHeader>
+                  <CardTitle>Active Slides & Duration</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <Label className="flex items-center gap-2 rounded-md border p-3 cursor-pointer hover:bg-muted/50">
+                      <input type="checkbox" className="w-4 h-4 cursor-pointer" checked={formData.slideConfig?.showQuran !== '0'} onChange={(e) => handleDeepChange("slideConfig", "showQuran", e.target.checked ? '1' : '0')} />
+                      📖 Quranic Reminder
+                    </Label>
+                    <Label className="flex items-center gap-2 rounded-md border p-3 cursor-pointer hover:bg-muted/50">
+                      <input type="checkbox" className="w-4 h-4 cursor-pointer" checked={formData.slideConfig?.showAnn !== '0'} onChange={(e) => handleDeepChange("slideConfig", "showAnn", e.target.checked ? '1' : '0')} />
+                      📢 Announcements
+                    </Label>
+                    <Label className="flex items-center gap-2 rounded-md border p-3 cursor-pointer hover:bg-muted/50">
+                      <input type="checkbox" className="w-4 h-4 cursor-pointer" checked={formData.slideConfig?.showHadith !== '0'} onChange={(e) => handleDeepChange("slideConfig", "showHadith", e.target.checked ? '1' : '0')} />
+                      📜 Hadith of the Day
+                    </Label>
+                    <Label className="flex items-center gap-2 rounded-md border p-3 cursor-pointer hover:bg-muted/50">
+                      <input type="checkbox" className="w-4 h-4 cursor-pointer" checked={formData.slideConfig?.showClean !== '0'} onChange={(e) => handleDeepChange("slideConfig", "showClean", e.target.checked ? '1' : '0')} />
+                      🧹 Cleanliness Slide
+                    </Label>
+                    <Label className="flex items-center gap-2 rounded-md border p-3 cursor-pointer hover:bg-muted/50">
+                      <input type="checkbox" className="w-4 h-4 cursor-pointer" checked={formData.slideConfig?.showDars !== '0'} onChange={(e) => handleDeepChange("slideConfig", "showDars", e.target.checked ? '1' : '0')} />
+                      📚 Weekly Dars
+                    </Label>
+                    <Label className="flex items-center gap-2 rounded-md border p-3 cursor-pointer hover:bg-muted/50">
+                      <input type="checkbox" className="w-4 h-4 cursor-pointer" checked={formData.slideConfig?.showCommunity !== '0'} onChange={(e) => handleDeepChange("slideConfig", "showCommunity", e.target.checked ? '1' : '0')} />
+                      ❤️ Community
+                    </Label>
+                  </div>
+                  <div className="flex items-center gap-4 mt-6">
+                    <Label>Slide Duration (seconds):</Label>
+                    <Input type="number" className="w-24 text-center font-bold" min="5" max="60" value={formData.slideConfig?.slideDur || "10"} onChange={(e) => handleDeepChange("slideConfig", "slideDur", e.target.value)} />
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-card/50 backdrop-blur-sm border-border/60">
+                <CardHeader>
+                  <CardTitle>📚 Weekly Dars Setup</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                       <Label>Title</Label>
+                       <Input value={formData.slideConfig?.darsTitle || "Weekly Dars"} onChange={(e) => handleDeepChange("slideConfig", "darsTitle", e.target.value)} />
+                    </div>
+                    <div className="space-y-2">
+                       <Label>Badge Tag</Label>
+                       <Input value={formData.slideConfig?.darsTag || "Weekly Invitation"} onChange={(e) => handleDeepChange("slideConfig", "darsTag", e.target.value)} />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                      <Label>Day</Label>
+                      <Select value={formData.slideConfig?.darsDay || "Sunday"} onValueChange={(val) => handleDeepChange("slideConfig", "darsDay", val)}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          {["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"].map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                       <Label>Time</Label>
+                       <Input value={formData.slideConfig?.darsTime || "After Dhuhr"} onChange={(e) => handleDeepChange("slideConfig", "darsTime", e.target.value)} />
+                    </div>
+                    <div className="space-y-2">
+                       <Label>Location</Label>
+                       <Input value={formData.slideConfig?.darsPlace || "In the mosque"} onChange={(e) => handleDeepChange("slideConfig", "darsPlace", e.target.value)} />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                     <Label>Footer Note</Label>
+                     <Input value={formData.slideConfig?.darsNote || "Everyone is welcome — brothers and sisters in faith"} onChange={(e) => handleDeepChange("slideConfig", "darsNote", e.target.value)} />
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
           )}
 
           {activeTab === "prayer" && (

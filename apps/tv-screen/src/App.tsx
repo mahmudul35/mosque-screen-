@@ -55,6 +55,13 @@ function App() {
     ? 'tv-orientation-software-portrait' 
     : 'tv-orientation-software-landscape'
 
+  const fsClock = mosqueData?.typography?.fsClock || '88'
+  const fsAdhan = mosqueData?.typography?.fsAdhan || '25'
+  const fsIq = mosqueData?.typography?.fsIq || '34'
+  const fsNm = mosqueData?.typography?.fsNm || '10'
+  const fsSlide = mosqueData?.typography?.fsSlide || '14'
+  const fsAr = mosqueData?.typography?.fsAr || '28'
+
   // Determine Next Prayer & Active Prayer
   const getActive = () => {
     const t = now.getHours() * 60 + now.getMinutes()
@@ -147,10 +154,10 @@ function App() {
                       background: isActive ? customAcc : 'rgba(255,255,255,0.02)',
                       color: isActive ? '#000' : '#fff'
                     }}>
-                      <div style={{ flex: 1, fontSize: '1.5vw', fontWeight: 'bold' }}>{Lpn(lang, p.key)}</div>
-                      <div style={{ fontSize: '1.5vw' }}>{apiData[p.key]?.adhan || '--:--'}</div>
+                      <div style={{ flex: 1, fontSize: `${(parseInt(fsNm)/10).toFixed(1)}vw`, fontWeight: 'bold' }}>{Lpn(lang, p.key)}</div>
+                      <div style={{ fontSize: `${(parseInt(fsAdhan)/10).toFixed(1)}vw` }}>{apiData[p.key]?.adhan || '--:--'}</div>
                       {iq && (
-                        <div style={{ marginLeft: '1vw', fontSize: '1.2vw', opacity: 0.8 }}>
+                        <div style={{ marginLeft: '1vw', fontSize: `${(parseInt(fsIq)/20).toFixed(1)}vw`, opacity: 0.8 }}>
                           | {iq}
                         </div>
                       )}
@@ -175,7 +182,7 @@ function App() {
                  <div style={{ fontSize: '1.5vw', color: customAcc }}>{toHijri(now)}</div>
                  <div style={{ fontSize: '1.5vw' }}>{now.toLocaleDateString(lang === 'en' ? 'en-US' : lang, { weekday: 'long', day: 'numeric', month: 'long' })}</div>
                </div>
-               <div style={{ display: 'flex', gap: '0.5vw', alignItems: 'baseline', fontSize: '5vw', fontWeight: 900 }}>
+               <div style={{ display: 'flex', gap: '0.5vw', alignItems: 'baseline', fontSize: `${(parseInt(fsClock)/10).toFixed(1)}vw`, fontWeight: 900 }}>
                  <span>{pad(now.getHours())}</span>
                  <span className="animate-pulse">:</span>
                  <span>{pad(now.getMinutes())}</span>
@@ -194,9 +201,9 @@ function App() {
              <div style={{ flex: 1, background: 'rgba(0,0,0,0.4)', borderRadius: '2vw', position: 'relative', overflow: 'hidden' }}>
                {/* Simplified static quote for now to simulate the carousel */}
                <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', padding: '3vw', textAlign: 'center' }}>
-                 <div style={{ fontSize: '2vw', color: customAcc, marginBottom: '2vw' }}>{L(lang, 'quranLbl')}</div>
-                 <div style={{ fontSize: '3.5vw', lineHeight: '1.4' }}>وَمَا خَلَقْتُ الْجِنَّ وَالْإِنسَ إِلَّا لِيَعْبُدُونِ</div>
-                 <div style={{ fontSize: '2vw', color: 'rgba(255,255,255,0.7)', marginTop: '2vw' }}>"I created jinn and humans only to worship Me."</div>
+                 <div style={{ fontSize: `1.5vw`, color: customAcc, marginBottom: '2vw' }}>{L(lang, 'quranLbl')}</div>
+                 <div style={{ fontSize: `${(parseInt(fsAr)/10).toFixed(1)}vw`, lineHeight: '1.4' }}>وَمَا خَلَقْتُ الْجِنَّ وَالْإِنسَ إِلَّا لِيَعْبُدُونِ</div>
+                 <div style={{ fontSize: `${(parseInt(fsSlide)/10).toFixed(1)}vw`, color: 'rgba(255,255,255,0.7)', marginTop: '2vw' }}>"I created jinn and humans only to worship Me."</div>
                </div>
              </div>
 
