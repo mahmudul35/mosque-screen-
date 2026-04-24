@@ -53,20 +53,20 @@ function App() {
         </header>
 
         {/* MAIN BODY */}
-        <main className="relative z-10 flex-1 flex gap-tv-4">
+        <main className="relative z-10 flex-1 flex gap-tv-4 min-h-0">
           
           {/* LEFT: Prayer Times Table */}
-          <div className="w-[40%] bg-tv-surface/60 rounded-3xl border border-white/10 p-tv-4 backdrop-blur-md flex flex-col">
+          <div className="w-[40%] bg-tv-surface/60 rounded-3xl border border-white/10 p-tv-4 flex flex-col min-h-0 backdrop-blur-md">
             <h3 className="text-tv-base font-semibold mb-tv-2 border-b border-white/10 pb-tv-1 text-tv-accent uppercase tracking-widest">Prayer Times</h3>
-            <div className="flex-1 flex flex-col justify-between">
+            <div className="flex-1 flex flex-col justify-between min-h-0">
               {[
                 { name: 'Fajr', time: '04:45 AM', iqamah: '05:00 AM', active: false },
                 { name: 'Dhuhr', time: '12:30 PM', iqamah: '01:00 PM', active: false },
-                { name: 'Asr', time: '04:15 PM', iqamah: '04:30 PM', active: true }, // Current prayer
+                { name: 'Asr', time: '04:15 PM', iqamah: '04:30 PM', active: true },
                 { name: 'Maghrib', time: '06:40 PM', iqamah: '06:45 PM', active: false },
                 { name: 'Isha', time: '08:00 PM', iqamah: '08:15 PM', active: false },
               ].map((prayer) => (
-                <div key={prayer.name} className={`flex justify-between items-center py-tv-2 px-tv-4 rounded-xl transition-all ${prayer.active ? 'bg-tv-primary text-tv-background scale-[1.02] shadow-2xl shadow-tv-primary/20' : 'hover:bg-white/5'}`}>
+                <div key={prayer.name} className={`flex justify-between items-center py-tv-1 px-tv-4 rounded-xl transition-all ${prayer.active ? 'bg-tv-primary text-tv-background scale-[1.02] shadow-2xl shadow-tv-primary/20' : 'hover:bg-white/5'}`}>
                   <span className={`text-tv-lg font-bold ${prayer.active ? '' : 'text-tv-text/90'}`}>{prayer.name}</span>
                   <div className="text-right">
                     <span className={`block text-tv-base ${prayer.active ? 'font-bold' : ''}`}>{prayer.time}</span>
