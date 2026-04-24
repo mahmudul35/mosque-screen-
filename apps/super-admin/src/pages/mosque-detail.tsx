@@ -474,7 +474,12 @@ export function MosqueDetailPage() {
 
                 <div className="pt-4 border-t border-border/40">
                   <h4 className="font-bold mb-4">Daily Iqamah Intervals</h4>
-                  <PrayerLogicGrid formData={formData} handleDeepChange={handleDeepChange} />
+                  <PrayerLogicGrid
+                    formData={formData}
+                    onChange={(updatedPrayerConfig) =>
+                      handleChange("prayerConfig", updatedPrayerConfig)
+                    }
+                  />
                 </div>
               </CardContent>
             </Card>

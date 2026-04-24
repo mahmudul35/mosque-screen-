@@ -14,8 +14,8 @@ import { TvOverlay } from './components/TvOverlay'
 
 import './tv.css'
 
-const ADHAN_SHOW_SECS = 30    // how long to show Adhan overlay
-const IQ_WARN_SECS_BEFORE = 60 // start Iqamah overlay this many seconds before iqamah
+const ADHAN_SHOW_SECS = 30     // how long to show Adhan overlay
+const IQ_WARN_SECS_BEFORE = 120 // start Iqamah overlay 2 minutes before iqamah (shows 2:00 countdown)
 
 function App() {
   const [mosqueData, setMosqueData] = useState<any>(null)
