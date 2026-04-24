@@ -173,28 +173,9 @@ function App() {
   }))
 
   return (
-    <div className={orientationClass} style={{ position: 'relative' }}>
-      {/* Background image */}
-      {dsBg && (
-        <div
-          className="tv-bgl"
-          style={{
-            backgroundImage: `url('${dsBg}')`,
-            filter: bgBlur > 0 ? `blur(${bgBlur}px)` : 'none',
-            transform: bgBlur > 0 ? 'scale(1.06)' : 'none',
-          }}
-        />
-      )}
-      {/* Dark overlay */}
-      <div
-        className="tv-bgo"
-        style={{
-          background: 'rgba(5,7,15,0.97)',
-          opacity: dsBg ? bgOpacity : 1,
-        }}
-      />
+    <div className={orientationClass}>
 
-      {/* TV Frame — applies theme CSS variables and data-t attribute */}
+      {/* TV Frame — sets theme class and CSS color variables */}
       <div
         className="tv-frame"
         data-t={theme}
@@ -204,7 +185,27 @@ function App() {
           ['--ti' as string]: customIq,
         }}
       >
-        {/* Overlay (Adhan / Iqamah) — inside tv-frame for theme styling */}
+        {/* ── Layer 0: Background image (inside tv-frame, above theme color) ── */}
+        {dsBg && (
+          <div
+            className="tv-bgl"
+            style={{
+              backgroundImage: `url('${dsBg}')`,
+              filter: bgBlur > 0 ? `blur(${bgBlur}px)` : 'none',
+              transform: bgBlur > 0 ? 'scale(1.06)' : 'none',
+            }}
+          />
+        )}
+        {/* ── Layer 0: Dark tint overlay ── */}
+        <div
+          className="tv-bgo"
+          style={{
+            background: 'rgba(5,7,15,0.97)',
+            opacity: dsBg ? bgOpacity : 0,
+          }}
+        />
+
+        {/* Adhan / Iqamah fullscreen overlay */}
         <TvOverlay
           show={overlay.show}
           type={overlay.type}

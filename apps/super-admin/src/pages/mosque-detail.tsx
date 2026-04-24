@@ -246,8 +246,15 @@ export function MosqueDetailPage() {
                     <Label>Background Image (Cloudinary)</Label>
                     <div className="flex items-center gap-4">
                       {formData.themeSettings?.bgImage ? (
-                        <div className="relative w-32 h-20 rounded-md overflow-hidden bg-black flex-shrink-0">
+                        <div className="relative w-32 h-20 rounded-md overflow-hidden bg-black flex-shrink-0 group">
                           <img src={formData.themeSettings.bgImage} className="object-cover w-full h-full opacity-80" alt="bg" />
+                          {/* Remove overlay on hover */}
+                          <button
+                            onClick={() => handleDeepChange("themeSettings", "bgImage", "")}
+                            className="absolute inset-0 bg-black/70 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-bold gap-1"
+                          >
+                            ✕ Remove
+                          </button>
                         </div>
                       ) : (
                         <div className="w-32 h-20 rounded-md bg-muted flex items-center justify-center border border-dashed flex-shrink-0">
@@ -256,7 +263,15 @@ export function MosqueDetailPage() {
                       )}
                       <div className="flex-1">
                         <Input type="file" accept="image/*" onChange={handleImageUpload} disabled={isUploading} className="mb-2" />
-                        <p className="text-xs text-muted-foreground">Upload a vibrant scenery image. It will be automatically blurred based on the setting below.</p>
+                        <p className="text-xs text-muted-foreground">Upload a background image. Hover the preview to remove it.</p>
+                        {formData.themeSettings?.bgImage && (
+                          <button
+                            onClick={() => handleDeepChange("themeSettings", "bgImage", "")}
+                            className="mt-1 text-xs text-red-500 hover:text-red-400 underline"
+                          >
+                            Remove background image
+                          </button>
+                        )}
                       </div>
                     </div>
                   </div>
