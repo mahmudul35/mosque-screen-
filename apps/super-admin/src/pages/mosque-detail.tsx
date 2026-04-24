@@ -105,6 +105,47 @@ export function MosqueDetailPage() {
               </div>
             </CardContent>
           </Card>
+
+          <Card className="bg-card/50 backdrop-blur-sm border-border/60">
+            <CardHeader>
+              <CardTitle>Display & Content Settings</CardTitle>
+              <CardDescription>Configure how this mosque's TV screens look and read in real-time.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="orientation">TV Orientation</Label>
+                  <Select value={formData.orientation || "landscape"} onValueChange={(val) => handleChange("orientation", val)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select Orientation" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="landscape">Landscape (Standard)</SelectItem>
+                      <SelectItem value="portrait">Portrait (Vertical)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="theme">Display Theme</Label>
+                  <Select value={formData.theme || "dark"} onValueChange={(val) => handleChange("theme", val)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select Theme" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="dark">Dark Mode (Default)</SelectItem>
+                      <SelectItem value="light">Light Mode</SelectItem>
+                      <SelectItem value="emerald">Emerald Theme</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="ticker">Scrolling News Ticker Text</Label>
+                <Input id="ticker" placeholder="e.g., Please donate generously..." value={formData.tickerText || ""} onChange={(e) => handleChange("tickerText", e.target.value)} />
+                <p className="text-xs text-muted-foreground">This text will scroll horizontally at the bottom of the TV screen.</p>
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
         <div className="space-y-6">

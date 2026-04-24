@@ -15,6 +15,10 @@ export interface Mosque {
   lastActive: string
   adminEmail: string
   createdAt: string
+  // Central Control Settings for TV
+  orientation?: "landscape" | "portrait"
+  theme?: string
+  tickerText?: string
 }
 
 export const apiSlice = createApi({

@@ -1,50 +1,65 @@
 import { useState, useEffect } from 'react'
+import { doc, onSnapshot } from 'firebase/firestore'
+import { db } from './lib/firebase'
 
 function App() {
-  // Normally this state would be synced with Firebase Firestore real-time listener!
-  // Example scenario: the Super Admin pushes a button to force a vertical orientation.
-  const [orientation, setOrientation] = useState<'landscape' | 'portrait'>('landscape')
-
+  const [mosqueData, setMosqueData] = useState<any>(null)
+  const [error, setError] = useState<string | null>(null)
+  
+  // Real-time Firebase Listener
   useEffect(() => {
-    // For demo purposes, we automatically detect physical screen orientation
-    // But this can be overridden by Firebase commands.
-    const handleResize = () => {
-      // Basic auto-detection if Firebase hasn't overridden
-      if (window.innerHeight > window.innerWidth) {
-         // setOrientation('portrait') but for now we keep it manual for demonstration
-      }
+    // Read the mosque Document ID from the URL: http://localhost:5174/?id=YOUR_FIREBASE_DOC_ID
+    const params = new URLSearchParams(window.location.search)
+    const docId = params.get('id')
+    
+    if (!docId) {
+      setError("Mosque ID is missing. Please add ?id=YOUR_DOC_ID in the URL.")
+      return
     }
-    window.addEventListener('resize', handleResize)
-    return () => window.removeEventListener('resize', handleResize)
+
+    const unsub = onSnapshot(doc(db, "mosques", docId), (docSnap) => {
+      if (docSnap.exists()) {
+        setMosqueData(docSnap.data())
+      } else {
+        setError("Mosque not found in Firebase.")
+      }
+    }, (error) => {
+      setError("Failed to connect to Firebase: " + error.message)
+    })
+
+    return () => unsub() // Auto clean up the listener
   }, [])
 
-  // The CSS hack: If the physical screen is landscape, but we want portrait,
-  // we apply a -90deg rotation to the container.
+
+  if (error) {
+    return <div className="tv-container bg-black flex items-center justify-center p-tv-8 text-tv-xl text-tv-background bg-tv-surface">
+      <div className="bg-red-500 p-tv-4 rounded-3xl">{error}</div>
+    </div>
+  }
+
+  if (!mosqueData) {
+    return <div className="tv-container bg-black flex flex-col items-center justify-center p-tv-8">
+      <div className="text-tv-lg font-bold">Connecting to Central Server... <span className="animate-pulse">⏳</span></div>
+    </div>
+  }
+
+  // Fallback to landscape if not provided
+  const orientation = mosqueData.orientation || 'landscape'
   const containerClass = `tv-container ${orientation === 'portrait' ? 'tv-engine-portrait-rotated' : ''}`
+  
+  const tickerText = mosqueData.tickerText || "Welcome to our Mosque. Please silence your mobile phones."
 
   return (
     <div className={containerClass}>
-      {/* 
-        DEVELOPER CONTROLS 
-        (Invisible in production. Click hidden corner to toggle) 
-      */}
-      <div 
-        className="absolute bottom-0 right-0 p-tv-2 opacity-5 hover:opacity-100 z-50 cursor-pointer"
-        onClick={() => setOrientation(prev => prev === 'landscape' ? 'portrait' : 'landscape')}
-      >
-         🔄 Toggle Orientation
-      </div>
-
       {/* --- TV UI LAYOUT --- */}
       <div className="w-full h-full flex flex-col p-tv-4 gap-tv-4 bg-[url('https://images.unsplash.com/photo-1584551246679-0daf3d275d0f?auto=format&fit=crop&q=80')] bg-cover bg-center">
-        {/* Overlay to dim background image */}
         <div className="absolute inset-0 bg-tv-background/80 backdrop-blur-sm z-0"></div>
 
-        {/* HEADER (Clock & Mosque Name) */}
+        {/* HEADER */}
         <header className="relative z-10 flex justify-between items-center bg-tv-surface/40 rounded-3xl border border-white/10 p-tv-4 backdrop-blur-md">
           <div className="flex flex-col">
-            <h1 className="text-tv-lg font-bold text-tv-primary">Baitul Mukarram Mosque</h1>
-            <p className="text-tv-sm text-tv-muted">Dhaka, Bangladesh</p>
+            <h1 className="text-tv-lg font-bold text-tv-primary">{mosqueData.name}</h1>
+            <p className="text-tv-sm text-tv-muted">{mosqueData.address || "Location unavailable"}</p>
           </div>
           <div className="flex flex-col items-end">
             <h2 className="text-tv-2xl font-black tabular-nums tracking-tighter">14:05</h2>
@@ -101,7 +116,7 @@ function App() {
         <footer className="relative z-10 bg-tv-primary text-tv-background rounded-full px-tv-4 py-tv-2 overflow-hidden flex items-center whitespace-nowrap">
            <span className="font-bold text-tv-sm uppercase mr-tv-4 shrink-0">News:</span>
            <div className="text-tv-sm font-medium animate-marquee inline-block w-full">
-              Registration for weekend Islamic school is now open. Please visit the office. • Don't forget to pay your Zakat before Ramadan ends. • 
+              {tickerText}
            </div>
         </footer>
       </div>
