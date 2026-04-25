@@ -2,7 +2,7 @@ import { useState, useEffect } from "react"
 import { useAuth } from "../contexts/auth"
 import { collection, query, where, onSnapshot, addDoc, doc, updateDoc, getDocs, deleteDoc, serverTimestamp } from "firebase/firestore"
 import { db } from "../lib/firebase"
-import { MonitorPlay, Plus, Loader2, Trash2, CheckCircle2, AlertCircle } from "lucide-react"
+import { MonitorPlay, Plus, Loader2, Trash2, AlertCircle, Lock, ChevronRight } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -26,7 +26,7 @@ interface Screen {
 }
 
 export function ScreensPage() {
-  const { mosqueId, role } = useAuth()
+  const { mosqueId, role, planLimits } = useAuth()
   const [screens, setScreens] = useState<Screen[]>([])
   const [loading, setLoading] = useState(true)
   
@@ -73,6 +73,12 @@ export function ScreensPage() {
     }
     if (!mosqueId) {
       setError("You must be assigned to a Mosque to pair a screen.")
+      return
+    }
+    // Enforce plan screen limit
+    const maxScreens = planLimits?.maxScreens ?? 1
+    if (screens.length >= maxScreens) {
+      setError(`Screen limit reached for your plan (${maxScreens} max). Please upgrade to add more screens.`)
       return
     }
 
@@ -123,15 +129,33 @@ export function ScreensPage() {
     }
   }
 
+  const maxScreens = planLimits?.maxScreens ?? 1
+  const isAtLimit = role === "MOSQUE_ADMIN" && screens.length >= maxScreens
+
   return (
     <div className="space-y-6 max-w-5xl mx-auto">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">TV Screens</h1>
-          <p className="text-muted-foreground mt-1">Manage and pair smart TVs to display your mosque's data.</p>
+          <p className="text-muted-foreground mt-1">
+            Manage and pair smart TVs · 
+            <span className="text-primary font-medium">{screens.length}/{maxScreens === 9999 ? '∞' : maxScreens} screens used</span>
+          </p>
         </div>
         
         {role === "MOSQUE_ADMIN" && (
+          isAtLimit ? (
+            <div className="flex items-center gap-3 px-4 py-2 bg-amber-500/10 border border-amber-500/30 rounded-lg text-sm">
+              <Lock className="w-4 h-4 text-amber-500 shrink-0" />
+              <div>
+                <p className="font-medium text-amber-500">Screen limit reached</p>
+                <p className="text-muted-foreground text-xs">Upgrade your plan to add more screens</p>
+              </div>
+              <a href="/" className="ml-2 text-xs text-primary hover:underline flex items-center gap-1">
+                Upgrade <ChevronRight className="w-3 h-3" />
+              </a>
+            </div>
+          ) : (
           <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
             <DialogTrigger asChild>
               <Button className="gap-2">
@@ -184,6 +208,7 @@ export function ScreensPage() {
               </DialogFooter>
             </DialogContent>
           </Dialog>
+          )
         )}
       </div>
 

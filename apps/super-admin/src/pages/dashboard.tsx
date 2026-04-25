@@ -10,7 +10,7 @@ export function DashboardPage() {
   
   // Redirect Mosque Admins to their specific dashboard
   if (role === "MOSQUE_ADMIN" && mosqueId) {
-    return <Navigate to={`/mosques/${mosqueId}`} replace />
+    return <Navigate to={`/dashboard/mosques/${mosqueId}`} replace />
   }
 
   return (

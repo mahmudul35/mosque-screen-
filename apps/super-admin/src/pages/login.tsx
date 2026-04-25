@@ -24,7 +24,7 @@ export function LoginPage() {
 
     try {
       await signInWithEmailAndPassword(auth, email, password)
-      navigate("/")
+      navigate("/dashboard")
     } catch (err: any) {
       console.error(err)
       setError("Invalid email or password")

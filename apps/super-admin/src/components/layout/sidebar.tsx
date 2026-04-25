@@ -8,18 +8,18 @@ import { cn } from "@/lib/utils"
 import { ModeToggle } from "@/components/mode-toggle"
 
 const superAdminItems = [
-  { name: "Dashboard", href: "/", icon: LayoutDashboard },
-  { name: "Mosques", href: "/mosques", icon: Building2 },
-  { name: "Screens", href: "/screens", icon: MonitorPlay },
-  { name: "Subscriptions", href: "/billing", icon: CreditCard },
-  { name: "Global Announcements", href: "/announcements", icon: Megaphone },
-  { name: "Settings", href: "/settings", icon: Settings },
+  { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+  { name: "Mosques", href: "/dashboard/mosques", icon: Building2 },
+  { name: "Screens", href: "/dashboard/screens", icon: MonitorPlay },
+  { name: "Plans & Pricing", href: "/dashboard/plans", icon: CreditCard },
+  { name: "Global Announcements", href: "/dashboard/announcements", icon: Megaphone },
+  { name: "Settings", href: "/dashboard/settings", icon: Settings },
 ]
 
 const mosqueAdminItems = [
-  { name: "My Mosque", href: "/", icon: LayoutDashboard },
-  { name: "Screens", href: "/screens", icon: MonitorPlay },
-  { name: "Billing", href: "/billing", icon: CreditCard },
+  { name: "My Mosque", href: "/dashboard", icon: LayoutDashboard },
+  { name: "Screens", href: "/dashboard/screens", icon: MonitorPlay },
+  { name: "Billing", href: "/dashboard/billing", icon: CreditCard },
 ]
 
 export function Sidebar() {
@@ -51,10 +51,10 @@ export function Sidebar() {
         {sidebarItems.map((item) => {
           // If mosque admin, rewrite the "My Mosque" link to go to their specific detail page
           const actualHref = role === "MOSQUE_ADMIN" && item.name === "My Mosque" && mosqueId 
-            ? `/mosques/${mosqueId}` 
+            ? `/dashboard/mosques/${mosqueId}` 
             : item.href
 
-          const isActive = location.pathname === actualHref || (item.name === "My Mosque" && location.pathname === "/")
+          const isActive = location.pathname === actualHref || (item.name === "My Mosque" && location.pathname === "/dashboard")
           
           return (
             <Link

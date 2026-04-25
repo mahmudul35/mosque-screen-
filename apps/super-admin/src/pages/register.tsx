@@ -1,5 +1,5 @@
 import React, { useState } from "react"
-import { useNavigate, Link } from "react-router-dom"
+import { useNavigate, Link, useLocation } from "react-router-dom"
 import { createUserWithEmailAndPassword } from "firebase/auth"
 import { doc, setDoc } from "firebase/firestore"
 import { auth, db } from "../lib/firebase"
@@ -7,6 +7,10 @@ import { Building2, Mail, Lock, AlertCircle, Loader2 } from "lucide-react"
 
 export function RegisterPage() {
   const navigate = useNavigate()
+  const location = useLocation()
+  const params = new URLSearchParams(location.search)
+  const planParam = params.get("plan") || "free"
+
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
 
@@ -61,8 +65,8 @@ export function RegisterPage() {
         createdAt: new Date().toISOString(),
       })
 
-      // 5. Redirect to dashboard (which will show the pricing or direct access)
-      navigate("/")
+      // 5. Redirect to checkout with plan and mosqueId (avoids AuthContext race condition)
+      navigate(`/checkout?plan=${planParam}&mosqueId=${mosqueId}`)
     } catch (err: any) {
       console.error(err)
       setError(err.message || "Failed to create account")
