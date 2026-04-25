@@ -11,7 +11,7 @@ import { TvSlides } from './components/TvSlides'
 import { TvJumuahStrip } from './components/TvJumuahStrip'
 import { TvPrayerBar } from './components/TvPrayerBar'
 import { TvOverlay } from './components/TvOverlay'
-
+import { PairingScreen } from './components/PairingScreen'
 import './tv.css'
 
 const ADHAN_SHOW_SECS = 30     // how long to show Adhan overlay
@@ -33,17 +33,39 @@ function App() {
 
   const { apiData } = usePrayers(mosqueData)
 
-  // ── 1. Firebase listener ──
+  const [pairedMosqueId, setPairedMosqueId] = useState<string | null>(null)
+
+  // ── 1. Initialize & Firebase listener ──
   useEffect(() => {
+    // Check URL params first (for backward compatibility / testing)
     const params = new URLSearchParams(window.location.search)
-    const docId  = params.get('id')
-    if (!docId) { setError('Mosque ID missing. Add ?id=YOUR_DOC_ID'); return }
-    const unsub = onSnapshot(doc(db, 'mosques', docId), snap => {
-      if (snap.exists()) setMosqueData(snap.data())
-      else setError('Mosque not found.')
-    }, e => setError(e.message))
-    return () => unsub()
+    let docId  = params.get('id')
+    
+    // If no URL param, check localStorage
+    if (!docId) {
+      docId = localStorage.getItem('mosqueId')
+    }
+
+    if (docId) {
+      setPairedMosqueId(docId)
+    }
   }, [])
+
+  useEffect(() => {
+    if (!pairedMosqueId) return
+
+    const unsub = onSnapshot(doc(db, 'mosques', pairedMosqueId), snap => {
+      if (snap.exists()) setMosqueData(snap.data())
+      else setError('Mosque not found or deleted.')
+    }, e => setError(e.message))
+    
+    return () => unsub()
+  }, [pairedMosqueId])
+
+  const handlePaired = (newMosqueId: string) => {
+    localStorage.setItem('mosqueId', newMosqueId)
+    setPairedMosqueId(newMosqueId)
+  }
 
   // ── 2. Clock tick ──
   useEffect(() => {
@@ -125,6 +147,7 @@ function App() {
   }, [now, apiData, mosqueData])
 
   // ── EARLY RETURNS ──
+  if (!pairedMosqueId) return <PairingScreen onPaired={handlePaired} />
   if (error) return <div style={{ background:'#000', height:'100vh', color:'#f44', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'3vw' }}>{error}</div>
   if (!mosqueData) return <div style={{ background:'#000', height:'100vh', color:'rgba(255,255,255,0.6)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'2.5vw' }}>Loading Mosque Display...</div>
 

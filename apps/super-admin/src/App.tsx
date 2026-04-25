@@ -5,6 +5,7 @@ import { DashboardLayout } from "./components/layout/dashboard-layout"
 import { DashboardPage } from "./pages/dashboard"
 import { MosquesPage } from "./pages/mosques"
 import { MosqueDetailPage } from "./pages/mosque-detail"
+import { ScreensPage } from "./pages/screens"
 
 import { ProtectedRoute } from "./components/layout/protected-route"
 
@@ -20,6 +21,7 @@ function App() {
             <Route index element={<DashboardPage />} />
             <Route path="mosques" element={<MosquesPage />} />
             <Route path="mosques/:id" element={<MosqueDetailPage />} />
+            <Route path="screens" element={<ScreensPage />} />
           </Route>
         </Route>
       </Routes>
