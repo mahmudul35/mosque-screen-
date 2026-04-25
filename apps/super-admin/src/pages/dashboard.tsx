@@ -1,7 +1,18 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Building2, MonitorPlay, Wallet, Users } from "lucide-react"
+import { useAuth } from "../contexts/auth"
+import { Navigate } from "react-router-dom"
 
 export function DashboardPage() {
+  const { role, mosqueId, loading } = useAuth()
+
+  if (loading) return null
+  
+  // Redirect Mosque Admins to their specific dashboard
+  if (role === "MOSQUE_ADMIN" && mosqueId) {
+    return <Navigate to={`/mosques/${mosqueId}`} replace />
+  }
+
   return (
     <div className="space-y-8">
       <div>

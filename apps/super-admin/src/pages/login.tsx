@@ -1,18 +1,36 @@
 import { useState } from "react"
+import { useNavigate, Link } from "react-router-dom"
+import { signInWithEmailAndPassword } from "firebase/auth"
+import { auth } from "../lib/firebase"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { ModeToggle } from "@/components/mode-toggle"
+import { AlertCircle, Loader2 } from "lucide-react"
 
 export function LoginPage() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
 
-  const handleLogin = (e: React.FormEvent) => {
+  const navigate = useNavigate()
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState("")
+
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
-    // Implement logic here
-    console.log("Logging in...", { email, password })
+    setLoading(true)
+    setError("")
+
+    try {
+      await signInWithEmailAndPassword(auth, email, password)
+      navigate("/")
+    } catch (err: any) {
+      console.error(err)
+      setError("Invalid email or password")
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -44,6 +62,12 @@ export function LoginPage() {
         </CardHeader>
         <form onSubmit={handleLogin}>
           <CardContent className="space-y-4">
+            {error && (
+              <div className="p-3 bg-destructive/15 border border-destructive/30 rounded-lg flex items-start gap-3">
+                <AlertCircle className="w-5 h-5 text-destructive shrink-0" />
+                <p className="text-sm text-destructive">{error}</p>
+              </div>
+            )}
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input
@@ -70,10 +94,17 @@ export function LoginPage() {
               />
             </div>
           </CardContent>
-          <CardFooter>
-            <Button type="submit" className="w-full text-md h-11 font-semibold transition-transform active:scale-[0.98]">
+          <CardFooter className="flex flex-col gap-4">
+            <Button type="submit" disabled={loading} className="w-full text-md h-11 font-semibold transition-transform active:scale-[0.98]">
+              {loading ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : null}
               Sign In
             </Button>
+            <p className="text-sm text-muted-foreground text-center">
+              Don't have an account?{' '}
+              <Link to="/register" className="text-primary hover:underline font-medium">
+                Register here
+              </Link>
+            </p>
           </CardFooter>
         </form>
       </Card>

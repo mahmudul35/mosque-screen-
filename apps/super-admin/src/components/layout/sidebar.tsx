@@ -1,10 +1,13 @@
-import { Link, useLocation } from "react-router-dom"
-import { LayoutDashboard, Building2, CreditCard, Settings, Megaphone, MonitorPlay } from "lucide-react"
+import { Link, useLocation, useNavigate } from "react-router-dom"
+import { LayoutDashboard, Building2, CreditCard, Settings, Megaphone, MonitorPlay, LogOut } from "lucide-react"
+import { signOut } from "firebase/auth"
+import { auth } from "../../lib/firebase"
+import { useAuth } from "../../contexts/auth"
 
 import { cn } from "@/lib/utils"
 import { ModeToggle } from "@/components/mode-toggle"
 
-const sidebarItems = [
+const superAdminItems = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard },
   { name: "Mosques", href: "/mosques", icon: Building2 },
   { name: "Screens", href: "/screens", icon: MonitorPlay },
@@ -13,8 +16,23 @@ const sidebarItems = [
   { name: "Settings", href: "/settings", icon: Settings },
 ]
 
+const mosqueAdminItems = [
+  { name: "My Mosque", href: "/", icon: LayoutDashboard },
+  { name: "Screens", href: "/screens", icon: MonitorPlay },
+  { name: "Billing", href: "/billing", icon: CreditCard },
+]
+
 export function Sidebar() {
   const location = useLocation()
+  const navigate = useNavigate()
+  const { role, user, mosqueId } = useAuth()
+
+  const sidebarItems = role === "SUPER_ADMIN" ? superAdminItems : mosqueAdminItems
+
+  const handleLogout = async () => {
+    await signOut(auth)
+    navigate("/login")
+  }
 
   return (
     <div className="flex h-screen flex-col border-r bg-background w-64 md:w-72 lg:w-80">
@@ -31,12 +49,17 @@ export function Sidebar() {
       
       <div className="flex-1 overflow-auto py-6 flex flex-col gap-2 px-4">
         {sidebarItems.map((item) => {
-          const isActive = location.pathname === item.href
+          // If mosque admin, rewrite the "My Mosque" link to go to their specific detail page
+          const actualHref = role === "MOSQUE_ADMIN" && item.name === "My Mosque" && mosqueId 
+            ? `/mosques/${mosqueId}` 
+            : item.href
+
+          const isActive = location.pathname === actualHref || (item.name === "My Mosque" && location.pathname === "/")
           
           return (
             <Link
               key={item.name}
-              to={item.href}
+              to={actualHref}
               className={cn(
                 "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all hover:text-primary",
                 isActive 
@@ -51,17 +74,26 @@ export function Sidebar() {
         })}
       </div>
 
-      <div className="border-t p-4 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-full bg-secondary flex items-center justify-center text-sm font-medium">
-            SA
+      <div className="border-t p-4 flex flex-col gap-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-full bg-secondary flex items-center justify-center text-sm font-medium uppercase">
+              {role === "SUPER_ADMIN" ? "SA" : "MA"}
+            </div>
+            <div className="flex flex-col text-sm max-w-[120px]">
+              <span className="font-semibold leading-tight truncate">{user?.email || "Admin"}</span>
+              <span className="text-xs text-muted-foreground truncate">{role === "SUPER_ADMIN" ? "Super Admin" : "Mosque Admin"}</span>
+            </div>
           </div>
-          <div className="flex flex-col text-sm">
-            <span className="font-semibold leading-tight">Super Admin</span>
-            <span className="text-xs text-muted-foreground">Admin Role</span>
-          </div>
+          <ModeToggle />
         </div>
-        <ModeToggle />
+        <button 
+          onClick={handleLogout}
+          className="flex items-center justify-center gap-2 w-full py-2 text-sm text-destructive hover:bg-destructive/10 rounded-md transition-colors font-medium"
+        >
+          <LogOut className="w-4 h-4" />
+          Log out
+        </button>
       </div>
     </div>
   )
