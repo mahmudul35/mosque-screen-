@@ -118,7 +118,7 @@ export function MosquesPage() {
               filteredMosques.map((mosque) => (
                 <TableRow key={mosque.id} className="transition-colors hover:bg-muted/30">
                   <TableCell className="font-medium text-xs text-muted-foreground">{mosque.mosqueId}</TableCell>
-                  <TableCell className="font-semibold cursor-pointer text-primary hover:underline hover:text-primary/80" onClick={() => navigate(`/mosques/${mosque.id}`)}>
+                  <TableCell className="font-semibold cursor-pointer text-primary hover:underline hover:text-primary/80" onClick={() => navigate(`/dashboard/mosques/${mosque.id}`)}>
                     {mosque.name}
                   </TableCell>
                   <TableCell className="text-sm">
@@ -152,7 +152,7 @@ export function MosquesPage() {
                           Copy ID
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={() => navigate(`/mosques/${mosque.id}`)}>
+                        <DropdownMenuItem onClick={() => navigate(`/dashboard/mosques/${mosque.id}`)}>
                           <ExternalLink className="mr-2 h-4 w-4" />
                           View Details
                         </DropdownMenuItem>

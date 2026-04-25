@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react"
 import { useParams, useNavigate } from "react-router-dom"
 import { useGetMosqueByIdQuery, useUpdateMosqueMutation, type Mosque, type ThemeSettings } from "@/store/api/apiSlice"
-import { ArrowLeft, Loader2, Save, MonitorPlay, Image as ImageIcon } from "lucide-react"
+import { ArrowLeft, Loader2, Save, MonitorPlay, Image as ImageIcon, Lock } from "lucide-react"
+import { useAuth } from "../contexts/auth"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -18,6 +19,10 @@ import { AnnouncementBuilder } from "@/components/admin/AnnouncementBuilder"
 export function MosqueDetailPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const { role, planLimits } = useAuth()
+  // Super admin sees everything; mosque admin is gated by their plan
+  const canUsePremiumThemes = role === "SUPER_ADMIN" || (planLimits?.features?.premiumThemes ?? false)
+  const canUseAnnouncements = role === "SUPER_ADMIN" || (planLimits?.features?.customAnnouncements ?? false)
   
   const { data: mosque, isLoading, isError } = useGetMosqueByIdQuery(id!)
   const [updateMosque, { isLoading: isUpdating }] = useUpdateMosqueMutation()
@@ -77,19 +82,19 @@ export function MosqueDetailPage() {
   }
 
   const TABS = [
-    { id: "general", label: "General" },
-    { id: "tv_display", label: "TV Display Theme" },
-    { id: "typography", label: "Typography" },
-    { id: "prayer", label: "Prayer Logic" },
-    { id: "slides", label: "Slides & Duration" },
-    { id: "content", label: "Custom Content" },
-    { id: "announcements", label: "Announcements" },
+    { id: "general", label: "General", locked: false },
+    { id: "tv_display", label: "TV Display Theme", locked: !canUsePremiumThemes },
+    { id: "typography", label: "Typography", locked: false },
+    { id: "prayer", label: "Prayer Logic", locked: false },
+    { id: "slides", label: "Slides & Duration", locked: false },
+    { id: "content", label: "Custom Content", locked: !canUseAnnouncements },
+    { id: "announcements", label: "Announcements", locked: !canUseAnnouncements },
   ]
 
   return (
     <div className="space-y-6 max-w-6xl mx-auto">
       <div className="flex items-center gap-4 border-b border-border/40 pb-4">
-        <Button variant="ghost" size="icon" onClick={() => navigate('/mosques')}>
+        <Button variant="ghost" size="icon" onClick={() => navigate('/dashboard/mosques')}>
           <ArrowLeft className="h-5 w-5" />
         </Button>
         <div>
@@ -112,13 +117,19 @@ export function MosqueDetailPage() {
         </div>
       </div>
 
-      <div className="flex gap-2">
+      <div className="flex gap-2 flex-wrap">
         {TABS.map(tab => (
           <Button 
             key={tab.id} 
             variant={activeTab === tab.id ? "default" : "outline"} 
-            onClick={() => setActiveTab(tab.id)}
+            onClick={() => {
+              if (tab.locked) return
+              setActiveTab(tab.id)
+            }}
+            className={tab.locked ? "opacity-50 cursor-not-allowed" : ""}
+            title={tab.locked ? `Upgrade your plan to unlock ${tab.label}` : ""}
           >
+            {tab.locked && <Lock className="w-3 h-3 mr-1.5" />}
             {tab.label}
           </Button>
         ))}
