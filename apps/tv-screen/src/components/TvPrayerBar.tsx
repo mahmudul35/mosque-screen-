@@ -12,12 +12,9 @@ interface Props {
   theme: string
   prayers: PrayerEntry[]
   activeIdx: number
-  fsAdhanPx: number
-  fsIqPx: number
-  fsNmPx: number
 }
 
-export function TvPrayerBar({ lang, theme, prayers, activeIdx, fsAdhanPx, fsIqPx, fsNmPx }: Props) {
+export function TvPrayerBar({ lang, theme, prayers, activeIdx }: Props) {
   return (
     <div className="tv-pbar">
       {prayers.map((pr, i) => {
@@ -39,7 +36,7 @@ export function TvPrayerBar({ lang, theme, prayers, activeIdx, fsAdhanPx, fsIqPx
               <div className="tv-par" dir="rtl">{meta.ar}</div>
 
               {/* Prayer name */}
-              <div className="tv-pnm" style={fsNmPx !== 10 ? { fontSize: `${fsNmPx}px` } : {}}>
+              <div className="tv-pnm">
                 {Lpn(lang, meta.key)}
               </div>
 
@@ -47,7 +44,7 @@ export function TvPrayerBar({ lang, theme, prayers, activeIdx, fsAdhanPx, fsIqPx
               <div className="tv-pal">ADHAN</div>
 
               {/* Adhan time */}
-              <div className="tv-padhan" style={fsAdhanPx !== 25 ? { fontSize: `${fsAdhanPx}px` } : {}}>
+              <div className="tv-padhan">
                 {pr.adhan || '--:--'}
               </div>
 
@@ -59,7 +56,7 @@ export function TvPrayerBar({ lang, theme, prayers, activeIdx, fsAdhanPx, fsIqPx
 
               {/* Iqamah time */}
               {hasIq ? (
-                <div className="tv-piqt" style={fsIqPx !== 34 ? { fontSize: `${fsIqPx}px` } : {}}>
+                <div className="tv-piqt">
                   {pr.iqamah}
                 </div>
               ) : isShuruq ? (

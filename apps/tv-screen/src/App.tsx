@@ -136,12 +136,13 @@ function App() {
   const bgOpacity  = parseFloat(mosqueData.themeSettings?.bgOpacity || '0.85')
   const dsBg       = mosqueData.themeSettings?.bgImage
 
-  const fsClockPx = parseInt(mosqueData.typography?.fsClock || '88')
-  const fsAdhanPx = parseInt(mosqueData.typography?.fsAdhan || '25')
-  const fsIqPx    = parseInt(mosqueData.typography?.fsIq    || '34')
-  const fsNmPx    = parseInt(mosqueData.typography?.fsNm    || '10')
-  const fsSlidePx = parseInt(mosqueData.typography?.fsSlide || '14')
-  const fsArPx    = parseInt(mosqueData.typography?.fsAr    || '28')
+  // Convert admin 'px' numbers to 'vw' for true responsiveness (1vw on 960px reference = 9.6px)
+  const fsClockVw = parseInt(mosqueData.typography?.fsClock || '88') / 9.6
+  const fsAdhanVw = parseInt(mosqueData.typography?.fsAdhan || '25') / 9.6
+  const fsIqVw    = parseInt(mosqueData.typography?.fsIq    || '34') / 9.6
+  const fsNmVw    = parseInt(mosqueData.typography?.fsNm    || '10') / 9.6
+  const fsSlideVw = parseInt(mosqueData.typography?.fsSlide || '14') / 9.6
+  const fsArVw    = parseInt(mosqueData.typography?.fsAr    || '28') / 9.6
 
   const orientationClass = mosqueData.orientation === 'portrait'
     ? 'tv-orientation-software-portrait'
@@ -157,12 +158,20 @@ function App() {
 
   // Next prayer
   const nowSec = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds()
-  let nextP = { key: 'Fajr', diff: 0, adhanTime: '--:--' }
+  let nextP: { key: string; diff: number; adhanTime: string } | null = null
   for (const p of PMETA) {
     const adhn = apiData[p.key]?.adhan || '00:00'
     const [h, m] = adhn.split(':').map(Number)
     const diff = h * 3600 + m * 60 - nowSec
     if (diff > 0) { nextP = { key: p.key, diff, adhanTime: adhn }; break }
+  }
+  
+  // If no next prayer found today (past Isha), next prayer is Fajr tomorrow
+  if (!nextP) {
+    const fajrAdhan = apiData['Fajr']?.adhan || '00:00'
+    const [fh, fm] = fajrAdhan.split(':').map(Number)
+    const diff = (24 * 3600 - nowSec) + (fh * 3600 + fm * 60)
+    nextP = { key: 'Fajr', diff, adhanTime: fajrAdhan }
   }
 
   // Build prayer list for PrayerBar
@@ -183,6 +192,13 @@ function App() {
           ['--ta' as string]: customAcc,
           ['--tg' as string]: customGold,
           ['--ti' as string]: customIq,
+          ['--fs-clock' as string]: `${fsClockVw}vw`,
+          ['--fs-adhan' as string]: `${fsAdhanVw}vw`,
+          ['--fs-iq' as string]: `${fsIqVw}vw`,
+          ['--fs-nm' as string]: `${fsNmVw}vw`,
+          ['--fs-slide' as string]: `${fsSlideVw}vw`,
+          ['--fs-ar' as string]: `${fsArVw}vw`,
+          fontFamily: mosqueData.typography?.fontFamily || "'DM Sans',-apple-system,system-ui,sans-serif",
         }}
       >
         {/* ── Layer 0: Background image (inside tv-frame, above theme color) ── */}
@@ -233,7 +249,6 @@ function App() {
             nextP={nextP}
             customAcc={customAcc}
             customGold={customGold}
-            fsClockPx={fsClockPx}
           />
 
           <TvSlides
@@ -242,8 +257,6 @@ function App() {
             theme={theme}
             customAcc={customAcc}
             customGold={customGold}
-            fsArPx={fsArPx}
-            fsSlidePx={fsSlidePx}
             slideIndex={slideIndex}
             setSlideIndex={setSlideIndex}
           />
@@ -263,9 +276,6 @@ function App() {
           theme={theme}
           prayers={prayers}
           activeIdx={activeIdx}
-          fsAdhanPx={fsAdhanPx}
-          fsIqPx={fsIqPx}
-          fsNmPx={fsNmPx}
         />
       </div>
     </div>

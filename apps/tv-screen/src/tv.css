@@ -12,6 +12,14 @@
   color: #fff;
   background: #05070f;
 
+  /* ── Typography Variables (injected from App.tsx, defaults here) ── */
+  --fs-clock: 9.17vw;
+  --fs-adhan: 2.6vw;
+  --fs-iq: 3.54vw;
+  --fs-nm: 1.04vw;
+  --fs-slide: 1.46vw;
+  --fs-ar: 2.92vw;
+
   /* CSS variables — override per theme */
   --ta: #00e676;
   --tg: #ffd54f;
@@ -117,14 +125,14 @@
 .tv-frame[data-t="H"] .tv-clock::before,
 .tv-frame[data-t="H"] .tv-clock::after { background: linear-gradient(90deg,#c9a84c,#a07030); }
 
-.tv-clock-ar { font-size: 1.04vw; color: var(--tg); opacity: 0.6; direction: rtl; }
+.tv-clock-ar { font-size: var(--fs-nm); color: var(--tg); opacity: 0.6; direction: rtl; }
 .tv-frame[data-t="H"] .tv-clock-ar { display: none; }
 
 .tv-ampm { font-size: 1.67vw; font-weight: 400; color: var(--tt); opacity: 0.7; display: none; }
-.tv-frame[data-t="H"] .tv-ampm { display: block; font-size: 2.08vw; font-weight: 600; opacity: 0.9; text-align: right; padding-right: 0.42vw; margin-bottom: -0.37vh; }
+.tv-frame[data-t="H"] .tv-ampm { display: block; font-size: calc(var(--fs-clock) * 0.22); font-weight: 600; opacity: 0.9; text-align: right; padding-right: 0.42vw; margin-bottom: -0.37vh; }
 
-.tv-time { font-size: 9.17vw; font-weight: 700; color: var(--tt); letter-spacing: -0.31vw; line-height: 1; text-align: center; font-variant-numeric: tabular-nums; }
-.tv-frame[data-t="H"] .tv-time { font-size: 8.33vw; letter-spacing: -0.21vw; }
+.tv-time { font-size: var(--fs-clock); font-weight: 700; color: var(--tt); letter-spacing: -0.31vw; line-height: 1; text-align: center; font-variant-numeric: tabular-nums; }
+.tv-frame[data-t="H"] .tv-time { font-size: calc(var(--fs-clock) * 0.9); letter-spacing: -0.21vw; }
 .tv-blink { animation: tvblink 1s step-end infinite; }
 @keyframes tvblink { 50% { opacity: 0.06; } }
 
@@ -132,8 +140,8 @@
 .tv-ol   { height: 1px; width: 1.88vw; background: var(--tg); opacity: 0.35; }
 .tv-osd  { width: 0.52vw; height: 0.52vw; background: var(--tg); transform: rotate(45deg); opacity: 0.45; }
 
-.tv-date { font-size: 1.09vw; color: var(--tt2); letter-spacing: 0.1vw; text-transform: uppercase; text-align: center; line-height: 1.5; white-space: pre-line; margin-top: 0.19vh; }
-.tv-hijri2 { font-size: 1.04vw; color: var(--tg); opacity: 0.8; direction: rtl; text-align: center; margin-top: 0.09vh; }
+.tv-date { font-size: calc(var(--fs-nm) * 1.05); color: var(--tt2); letter-spacing: 0.1vw; text-transform: uppercase; text-align: center; line-height: 1.5; white-space: pre-line; margin-top: 0.19vh; }
+.tv-hijri2 { font-size: var(--fs-nm); color: var(--tg); opacity: 0.8; direction: rtl; text-align: center; margin-top: 0.09vh; }
 .tv-frame[data-t="H"] .tv-hijri2 { display: none; }
 
 /* Next prayer (standard) */
@@ -141,16 +149,16 @@
 .tv-frame[data-t="E"] .tv-nxp,
 .tv-frame[data-t="E2"] .tv-nxp { display: block; }
 .tv-nxp-lbl  { font-size: 0.83vw; letter-spacing: 0.21vw; text-transform: uppercase; color: var(--tt3); font-weight: 600; }
-.tv-nxp-name { font-size: 1.04vw; font-weight: 700; color: var(--ta); letter-spacing: 0.1vw; text-transform: uppercase; margin-top: 0.09vh; }
+.tv-nxp-name { font-size: var(--fs-nm); font-weight: 700; color: var(--ta); letter-spacing: 0.1vw; text-transform: uppercase; margin-top: 0.09vh; }
 .tv-nxp-cnt  { font-size: 1.77vw; font-weight: 700; color: var(--ta); font-variant-numeric: tabular-nums; }
 
 /* Next prayer (Theme H) */
 .tv-nxp-h { display: none; margin-top: 1.11vh; text-align: center; width: 100%; padding: 0 0.63vw; }
 .tv-frame[data-t="H"] .tv-nxp-h { display: block; }
 .tv-nxp-h-lbl  { font-size: 0.99vw; font-weight: 700; color: #c9a84c; letter-spacing: 0.16vw; text-transform: uppercase; }
-.tv-nxp-h-name { font-size: 1.09vw; color: rgba(255,255,255,0.65); margin-top: 0.09vh; }
-.tv-nxp-h-time { font-size: 2.92vw; font-weight: 700; color: #c9a84c; letter-spacing: 0.1vw; font-variant-numeric: tabular-nums; line-height: 1; }
-.tv-nxp-h-cnt  { font-size: 1.04vw; color: rgba(255,255,255,0.45); margin-top: 0.09vh; font-variant-numeric: tabular-nums; }
+.tv-nxp-h-name { font-size: var(--fs-nm); color: rgba(255,255,255,0.65); margin-top: 0.09vh; }
+.tv-nxp-h-time { font-size: var(--fs-ar); font-weight: 700; color: #c9a84c; letter-spacing: 0.1vw; font-variant-numeric: tabular-nums; line-height: 1; }
+.tv-nxp-h-cnt  { font-size: var(--fs-nm); color: rgba(255,255,255,0.45); margin-top: 0.09vh; font-variant-numeric: tabular-nums; }
 
 /* ─ Slides area ─ */
 .tv-slides { flex: 1; position: relative; overflow: hidden; }
@@ -162,10 +170,10 @@
 
 .tv-qlbl { font-size: 0.94vw; letter-spacing: 0.31vw; text-transform: uppercase; font-weight: 700; color: var(--ta); }
 .tv-hlbl { font-size: 0.94vw; letter-spacing: 0.31vw; text-transform: uppercase; font-weight: 700; color: var(--tg); }
-.tv-qar, .tv-har { color: var(--tt); text-align: center; line-height: 1.7; direction: rtl; font-family: 'Amiri', 'Geeza Pro', serif; }
+.tv-qar, .tv-har { color: var(--tt); text-align: center; line-height: 1.7; direction: rtl; font-family: 'Amiri', 'Geeza Pro', serif; font-size: var(--fs-ar); }
 .tv-qbar { height: 1px; width: 7.92vw; background: var(--ta); opacity: 0.4; }
 .tv-hbar { height: 1px; width: 7.92vw; background: var(--tg); opacity: 0.4; }
-.tv-qtrans, .tv-htrans { color: var(--tt2); text-align: center; line-height: 1.6; font-style: italic; font-weight: 300; }
+.tv-qtrans, .tv-htrans { color: var(--tt2); text-align: center; line-height: 1.6; font-style: italic; font-weight: 300; font-size: var(--fs-slide); }
 .tv-htrans { border-left: 2px solid var(--tg); border-right: 2px solid var(--tg); padding: 0 1.67vw; }
 .tv-qsrc { font-size: 0.94vw; color: var(--ta); opacity: 0.55; letter-spacing: 0.16vw; text-transform: uppercase; }
 .tv-hsrc { font-size: 0.94vw; color: var(--tg); opacity: 0.55; letter-spacing: 0.16vw; text-transform: uppercase; }
@@ -181,7 +189,7 @@
 /* Theme H slide nav arrows */
 .tv-slide-nav { display: none; position: absolute; bottom: 1.04vh; left: 0; right: 0; justify-content: space-between; align-items: center; padding: 0 1.25vw; z-index: 10; }
 .tv-frame[data-t="H"] .tv-slide-nav { display: flex; }
-.tv-slide-nav-btn { font-size: 1.46vw; color: rgba(255,255,255,0.3); cursor: pointer; width: 2.92vw; height: 2.92vw; display: flex; align-items: center; justify-content: center; }
+.tv-slide-nav-btn { font-size: var(--fs-slide); color: rgba(255,255,255,0.3); cursor: pointer; width: 2.92vw; height: 2.92vw; display: flex; align-items: center; justify-content: center; }
 
 /* ─ Jumuah strip ─ */
 .tv-jstrip {
@@ -232,7 +240,7 @@
 .tv-frame[data-t="H"] .tv-pc.active::after { display: none; }
 @keyframes gbar { 0%,100%{opacity:1} 50%{opacity:0.18} }
 
-.tv-pc-mosque-ico { display: none; font-size: 1.15vw; text-align: center; margin-top: -0.19vh; margin-bottom: 0.09vh; }
+.tv-pc-mosque-ico { display: none; font-size: var(--fs-nm); text-align: center; margin-top: -0.19vh; margin-bottom: 0.09vh; }
 .tv-frame[data-t="H"] .tv-pc.active .tv-pc-mosque-ico { display: block; }
 
 .tv-pc-in { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 0.93vh 0.31vw 1.11vh; z-index: 1; }
@@ -241,7 +249,7 @@
 .tv-pc.active .tv-par { opacity: 0.88; }
 .tv-frame[data-t="H"] .tv-par { display: none; }
 
-.tv-pnm { font-size: 1.04vw; letter-spacing: 0.13vw; text-transform: uppercase; color: var(--tt); font-weight: 700; margin-bottom: 0.56vh; opacity: 0.58; }
+.tv-pnm { font-size: var(--fs-nm); letter-spacing: 0.13vw; text-transform: uppercase; color: var(--tt); font-weight: 700; margin-bottom: 0.56vh; opacity: 0.58; }
 .tv-pc.active .tv-pnm { opacity: 1; }
 .tv-frame[data-t="H"] .tv-pc.active .tv-pnm { color: #0a1520; opacity: 1; }
 
@@ -252,7 +260,7 @@
 .tv-frame[data-t="H"] .tv-pc.active .tv-pal,
 .tv-frame[data-t="H"] .tv-pc.active .tv-pql { color: #0a1520; opacity: 0.85; }
 
-.tv-padhan { font-size: 2.6vw; font-weight: 700; color: var(--tt); line-height: 1; letter-spacing: 0.05vw; opacity: 0.52; }
+.tv-padhan { font-size: var(--fs-adhan); font-weight: 700; color: var(--tt); line-height: 1; letter-spacing: 0.05vw; opacity: 0.52; }
 .tv-pc.active .tv-padhan { opacity: 1; animation: tvblink 1.8s ease-in-out infinite; }
 .tv-pc.shuruq .tv-padhan { animation: none !important; }
 .tv-frame[data-t="H"] .tv-pc.active .tv-padhan { color: #0a1520; animation: none; }
@@ -261,11 +269,11 @@
 .tv-pc.active .tv-pdiv { background: var(--ta); opacity: 0.35; }
 .tv-frame[data-t="H"] .tv-pc.active .tv-pdiv { background: rgba(10,21,32,0.3); opacity: 1; }
 
-.tv-piqt { font-size: 3.54vw; font-weight: 700; color: var(--ti); line-height: 1; opacity: 0.78; }
+.tv-piqt { font-size: var(--fs-iq); font-weight: 700; color: var(--ti); line-height: 1; opacity: 0.78; }
 .tv-pc.active .tv-piqt { opacity: 1; }
-.tv-frame[data-t="H"] .tv-pc.active .tv-piqt { color: #0a1520; font-size: 3.13vw; }
+.tv-frame[data-t="H"] .tv-pc.active .tv-piqt { color: #0a1520; font-size: calc(var(--fs-iq) * 0.88); }
 
-.tv-pno { font-size: 1.35vw; color: var(--tt3); margin-top: 1.85vh; }
+.tv-pno { font-size: var(--fs-slide); color: var(--tt3); margin-top: 1.85vh; }
 
 /* ─ Overlays ─ */
 .tv-ov {
@@ -292,7 +300,7 @@
 
 /* ─ Announcement slides ─ */
 .tv-ann-slide { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(18px); background: rgba(0,0,0,0.12); }
-.tv-ann-panel-hdr { display: none; font-size: 1.35vw; font-weight: 800; color: #c9a84c; letter-spacing: 0.21vw; text-transform: uppercase; margin-bottom: 2.22vh; padding-bottom: 1.48vh; border-bottom: 1px solid rgba(201,168,76,0.25); }
+.tv-ann-panel-hdr { display: none; font-size: var(--fs-slide); font-weight: 800; color: #c9a84c; letter-spacing: 0.21vw; text-transform: uppercase; margin-bottom: 2.22vh; padding-bottom: 1.48vh; border-bottom: 1px solid rgba(201,168,76,0.25); }
 .tv-frame[data-t="H"] .tv-ann-panel-hdr { display: block; }
 
 /* ─ Announcement text-slide content ─ */

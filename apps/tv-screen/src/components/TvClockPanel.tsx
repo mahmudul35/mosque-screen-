@@ -8,10 +8,9 @@ interface Props {
   nextP: { key: string; diff: number; adhanTime: string }
   customAcc: string
   customGold: string
-  fsClockPx: number
 }
 
-export function TvClockPanel({ now, lang, theme, nextP, customAcc, customGold, fsClockPx }: Props) {
+export function TvClockPanel({ now, lang, theme, nextP, customAcc, customGold }: Props) {
   const isH = theme === 'H'
   const isE = theme === 'E' || theme === 'E2'
 
@@ -38,7 +37,7 @@ export function TvClockPanel({ now, lang, theme, nextP, customAcc, customGold, f
       {isH && <div className="tv-ampm">{ampm}</div>}
 
       {/* Main clock */}
-      <div className="tv-time" style={fsClockPx !== 88 ? { fontSize: `${fsClockPx}px` } : {}}>
+      <div className="tv-time">
         <span>{hh}</span>
         <span className="tv-blink" style={{ opacity: blinkOn ? 1 : 0.06 }}>:</span>
         <span>{mm}</span>
