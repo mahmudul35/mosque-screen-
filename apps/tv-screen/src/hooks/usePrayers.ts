@@ -23,6 +23,8 @@ export function usePrayers(mosqueData: any) {
   useEffect(() => {
     if (!mosqueData) return
 
+    const lat = mosqueData.lat
+    const lng = mosqueData.lng
     const city = mosqueData.city || 'Dhaka'
     const country = mosqueData.country || 'Bangladesh'
     const method = mosqueData.prayerConfig?.method || '3'
@@ -30,8 +32,18 @@ export function usePrayers(mosqueData: any) {
     const fetchPrayers = async () => {
       const now = new Date()
       const ds = `${String(now.getDate()).padStart(2, '0')}-${String(now.getMonth() + 1).padStart(2, '0')}-${now.getFullYear()}`
+
+      // Use coordinates-based API when available (more accurate: ±1-2 min)
+      // Fall back to city-based API for legacy mosques (±5-10 min)
+      let url: string
+      if (lat && lng) {
+        url = `https://api.aladhan.com/v1/timings/${ds}?latitude=${lat}&longitude=${lng}&method=${method}`
+      } else {
+        url = `https://api.aladhan.com/v1/timingsByCity/${ds}?city=${encodeURIComponent(city)}&country=${encodeURIComponent(country)}&method=${method}`
+      }
+
       try {
-        const res = await fetch(`https://api.aladhan.com/v1/timingsByCity/${ds}?city=${encodeURIComponent(city)}&country=${encodeURIComponent(country)}&method=${method}`)
+        const res = await fetch(url)
         const data = await res.json()
         if (data.code === 200) {
           const t = data.data.timings
@@ -52,10 +64,10 @@ export function usePrayers(mosqueData: any) {
 
     fetchPrayers()
 
-    // Refresh every day at midnight
-    const intervalId = setInterval(fetchPrayers, 1000 * 60 * 60 * 4) 
+    // Refresh every 4 hours
+    const intervalId = setInterval(fetchPrayers, 1000 * 60 * 60 * 4)
     return () => clearInterval(intervalId)
-  }, [mosqueData?.city, mosqueData?.country, mosqueData?.prayerConfig?.method])
+  }, [mosqueData?.lat, mosqueData?.lng, mosqueData?.city, mosqueData?.country, mosqueData?.prayerConfig?.method])
 
   return { apiData }
 }

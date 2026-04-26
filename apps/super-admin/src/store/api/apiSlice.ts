@@ -79,6 +79,9 @@ export interface Mosque {
   address: string
   country: string
   city?: string
+  lat?: number
+  lng?: number
+  formattedAddress?: string
   timezone: string
   plan: "Free" | "Basic" | "Pro" | "Enterprise"
   status: "Active" | "Suspended" | "Trial"

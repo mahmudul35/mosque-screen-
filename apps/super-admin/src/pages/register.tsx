@@ -1,14 +1,15 @@
 import React, { useState } from "react"
 import { useNavigate, Link, useLocation } from "react-router-dom"
-import { createUserWithEmailAndPassword } from "firebase/auth"
+import { createUserWithEmailAndPassword, sendEmailVerification } from "firebase/auth"
 import { doc, setDoc } from "firebase/firestore"
 import { auth, db } from "../lib/firebase"
-import { Building2, AlertCircle, Loader2 } from "lucide-react"
+import { Building2, AlertCircle, Loader2, CheckCircle2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { ModeToggle } from "@/components/mode-toggle"
+import { LocationPicker, type PlaceResult } from "@/components/LocationPicker"
 
 export function RegisterPage() {
   const navigate = useNavigate()
@@ -22,11 +23,27 @@ export function RegisterPage() {
   const [formData, setFormData] = useState({
     mosqueName: "",
     city: "",
-    country: "Bangladesh",
+    country: "",
+    formattedAddress: "",
+    lat: 0,
+    lng: 0,
+    timezone: "",
     email: "",
     password: "",
     confirmPassword: "",
   })
+
+  const handlePlaceSelected = (place: PlaceResult) => {
+    setFormData(prev => ({
+      ...prev,
+      city: place.city,
+      country: place.country,
+      formattedAddress: place.formattedAddress,
+      lat: place.lat,
+      lng: place.lng,
+      timezone: place.timezone,
+    }))
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -39,20 +56,35 @@ export function RegisterPage() {
       return
     }
 
+    if (!formData.lat || !formData.lng) {
+      setError("Please select a location from the search dropdown for accurate prayer times.")
+      setLoading(false)
+      return
+    }
+
     try {
+      // 1. Create Firebase Auth user
       const userCredential = await createUserWithEmailAndPassword(auth, formData.email, formData.password)
       const user = userCredential.user
 
+      // 2. Send email verification
+      await sendEmailVerification(user)
+
+      // 3. Generate Mosque ID
       const ts = Date.now().toString().slice(-6)
-      const c = formData.country.slice(0, 2).toUpperCase()
+      const c = (formData.country || "XX").slice(0, 2).toUpperCase()
       const mosqueId = `MSQ-${c}-${ts}`
 
+      // 4. Create Mosque document
       await setDoc(doc(db, "mosques", mosqueId), {
         id: mosqueId,
         name: formData.mosqueName,
         country: formData.country,
         city: formData.city,
-        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC",
+        formattedAddress: formData.formattedAddress,
+        lat: formData.lat,
+        lng: formData.lng,
+        timezone: formData.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC",
         plan: planParam,
         status: "active",
         screensCount: 1,
@@ -75,6 +107,7 @@ export function RegisterPage() {
         annItems: [],
       })
 
+      // 5. Create User document
       await setDoc(doc(db, "users", user.uid), {
         email: user.email,
         role: "MOSQUE_ADMIN",
@@ -82,6 +115,7 @@ export function RegisterPage() {
         createdAt: new Date().toISOString(),
       })
 
+      // 6. Navigate
       if (planParam === "free") {
         navigate("/dashboard")
       } else {
@@ -148,15 +182,17 @@ export function RegisterPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="city">City <span className="text-muted-foreground font-normal">(for prayer times)</span></Label>
-              <Input
-                id="city"
-                required
-                value={formData.city}
-                onChange={e => setFormData({...formData, city: e.target.value})}
-                className="bg-background/50 focus-visible:ring-primary"
-                placeholder="e.g. Dhaka, London, Rome"
+              <Label>Location <span className="text-muted-foreground font-normal">(for accurate prayer times)</span></Label>
+              <LocationPicker
+                placeholder="Search your city..."
+                onPlaceSelected={handlePlaceSelected}
               />
+              {formData.city && formData.lat !== 0 && (
+                <p className="text-xs text-muted-foreground flex items-center gap-1">
+                  <CheckCircle2 className="w-3 h-3 text-emerald-500" />
+                  {formData.city}, {formData.country} &middot; {formData.timezone}
+                </p>
+              )}
             </div>
 
             <div className="space-y-2">

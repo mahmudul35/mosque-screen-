@@ -22,6 +22,7 @@ interface AuthData {
   role: UserRole | null
   mosqueId: string | null
   planLimits: PlanLimits | null
+  emailVerified: boolean
   loading: boolean
 }
 
@@ -37,6 +38,7 @@ const AuthContext = createContext<AuthData>({
   role: null,
   mosqueId: null,
   planLimits: null,
+  emailVerified: false,
   loading: true,
 })
 
@@ -45,12 +47,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [role, setRole] = useState<UserRole | null>(null)
   const [mosqueId, setMosqueId] = useState<string | null>(null)
   const [planLimits, setPlanLimits] = useState<PlanLimits | null>(null)
+  const [emailVerified, setEmailVerified] = useState(false)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
         setUser(firebaseUser)
+        setEmailVerified(firebaseUser.emailVerified)
         try {
           // 1. Fetch user document to get role and mosqueId
           const userDoc = await getDoc(doc(db, "users", firebaseUser.uid))
@@ -107,6 +111,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setRole(null)
         setMosqueId(null)
         setPlanLimits(null)
+        setEmailVerified(false)
       }
       setLoading(false)
     })
@@ -114,8 +119,20 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     return () => unsubscribe()
   }, [])
 
+  // Refresh emailVerified when user returns to the tab (after clicking verification link)
+  useEffect(() => {
+    const handleFocus = async () => {
+      if (auth.currentUser && !auth.currentUser.emailVerified) {
+        await auth.currentUser.reload()
+        setEmailVerified(auth.currentUser.emailVerified)
+      }
+    }
+    window.addEventListener("focus", handleFocus)
+    return () => window.removeEventListener("focus", handleFocus)
+  }, [])
+
   return (
-    <AuthContext.Provider value={{ user, role, mosqueId, planLimits, loading }}>
+    <AuthContext.Provider value={{ user, role, mosqueId, planLimits, emailVerified, loading }}>
       {children}
     </AuthContext.Provider>
   )

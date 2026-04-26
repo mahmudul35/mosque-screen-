@@ -13,6 +13,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { uploadToCloudinary } from "@/lib/cloudinary"
 
+import { LocationPicker, type PlaceResult } from "@/components/LocationPicker"
 import { PrayerLogicGrid } from "@/components/admin/PrayerLogicGrid"
 import { ContentBuilder } from "@/components/admin/ContentBuilder"
 import { AnnouncementBuilder } from "@/components/admin/AnnouncementBuilder"
@@ -154,15 +155,32 @@ export function MosqueDetailPage() {
                   <Label>Address / Sub-title</Label>
                   <Input value={formData.address || ""} onChange={(e) => handleChange("address", e.target.value)} />
                 </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Country</Label>
-                    <Input value={formData.country || ""} onChange={(e) => handleChange("country", e.target.value)} />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>City (For Prayer API)</Label>
-                    <Input value={formData.city || ""} onChange={(e) => handleChange("city", e.target.value)} />
-                  </div>
+                <div className="space-y-2">
+                  <Label>Location <span className="text-muted-foreground font-normal">(for accurate prayer times)</span></Label>
+                  <LocationPicker
+                    defaultValue={formData.city ? `${formData.city}, ${formData.country}` : ""}
+                    placeholder="Search city for prayer times..."
+                    onPlaceSelected={(place: PlaceResult) => {
+                      setFormData(prev => ({
+                        ...prev,
+                        city: place.city,
+                        country: place.country,
+                        formattedAddress: place.formattedAddress,
+                        lat: place.lat,
+                        lng: place.lng,
+                        timezone: place.timezone,
+                      }))
+                    }}
+                  />
+                  {formData.lat && formData.lng ? (
+                    <p className="text-xs text-muted-foreground">
+                      {formData.city}, {formData.country} &middot; {formData.lat?.toFixed(4)}, {formData.lng?.toFixed(4)} &middot; {formData.timezone}
+                    </p>
+                  ) : formData.city ? (
+                    <p className="text-xs text-amber-500">
+                      Legacy location: {formData.city}, {formData.country} — Select from search for accurate coordinates
+                    </p>
+                  ) : null}
                 </div>
               </CardContent>
             </Card>
