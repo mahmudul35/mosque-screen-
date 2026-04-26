@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { toast } from "sonner";
 
 export function ContentBuilder({
   formData,
@@ -23,7 +24,7 @@ export function ContentBuilder({
 
   const handleAdd = () => {
     if (!ar && !en) {
-      alert("Please add at least Arabic or English content");
+      toast.warning("Please add at least Arabic or English content");
       return;
     }
     const newItem: ContentItem = {

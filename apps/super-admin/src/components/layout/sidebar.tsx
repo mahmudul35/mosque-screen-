@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from "react-router-dom"
-import { LayoutDashboard, Building2, CreditCard, Settings, Megaphone, MonitorPlay, LogOut } from "lucide-react"
+import { LayoutDashboard, Building2, CreditCard, MonitorPlay, LogOut } from "lucide-react"
 import { signOut } from "firebase/auth"
 import { auth } from "../../lib/firebase"
 import { useAuth } from "../../contexts/auth"
@@ -12,14 +12,11 @@ const superAdminItems = [
   { name: "Mosques", href: "/dashboard/mosques", icon: Building2 },
   { name: "Screens", href: "/dashboard/screens", icon: MonitorPlay },
   { name: "Plans & Pricing", href: "/dashboard/plans", icon: CreditCard },
-  { name: "Global Announcements", href: "/dashboard/announcements", icon: Megaphone },
-  { name: "Settings", href: "/dashboard/settings", icon: Settings },
 ]
 
 const mosqueAdminItems = [
   { name: "My Mosque", href: "/dashboard", icon: LayoutDashboard },
   { name: "Screens", href: "/dashboard/screens", icon: MonitorPlay },
-  { name: "Billing", href: "/dashboard/billing", icon: CreditCard },
 ]
 
 export function Sidebar() {

@@ -2,6 +2,7 @@ import { useState, useEffect } from "react"
 import { useParams, useNavigate } from "react-router-dom"
 import { useGetMosqueByIdQuery, useUpdateMosqueMutation, type Mosque, type ThemeSettings } from "@/store/api/apiSlice"
 import { ArrowLeft, Loader2, Save, MonitorPlay, Image as ImageIcon, Lock } from "lucide-react"
+import { toast } from "sonner"
 import { useAuth } from "../contexts/auth"
 
 import { Button } from "@/components/ui/button"
@@ -60,7 +61,7 @@ export function MosqueDetailPage() {
       const url = await uploadToCloudinary(file)
       handleDeepChange("themeSettings", "bgImage", url)
     } catch (error) {
-      alert("Image upload failed!")
+      toast.error("Image upload failed. Please try again.")
     } finally {
       setIsUploading(false)
     }
@@ -69,7 +70,7 @@ export function MosqueDetailPage() {
   const handleSave = async () => {
     if (id) {
       await updateMosque({ id, data: formData })
-      alert("Changes saved successfully!")
+      toast.success("Changes saved & synced to TV!")
     }
   }
 
@@ -107,7 +108,7 @@ export function MosqueDetailPage() {
           <p className="text-muted-foreground mt-1 text-sm">ID: {mosque.mosqueId} • Central Control Hub</p>
         </div>
         <div className="ml-auto flex gap-2">
-           <Button variant="outline" onClick={() => window.open(`http://localhost:5174?id=${id}`, '_blank')}>
+           <Button variant="outline" onClick={() => window.open(`${import.meta.env.VITE_TV_SCREEN_URL || 'http://localhost:5174'}?id=${id}`, '_blank')}>
             <MonitorPlay className="mr-2 h-4 w-4" /> Live Preview
           </Button>
           <Button onClick={handleSave} disabled={isUpdating}>

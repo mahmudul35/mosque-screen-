@@ -3,7 +3,12 @@ import { useNavigate, Link, useLocation } from "react-router-dom"
 import { createUserWithEmailAndPassword } from "firebase/auth"
 import { doc, setDoc } from "firebase/firestore"
 import { auth, db } from "../lib/firebase"
-import { Building2, Mail, Lock, AlertCircle, Loader2 } from "lucide-react"
+import { Building2, AlertCircle, Loader2 } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { ModeToggle } from "@/components/mode-toggle"
 
 export function RegisterPage() {
   const navigate = useNavigate()
@@ -16,9 +21,11 @@ export function RegisterPage() {
 
   const [formData, setFormData] = useState({
     mosqueName: "",
+    city: "",
     country: "Bangladesh",
     email: "",
     password: "",
+    confirmPassword: "",
   })
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -26,38 +33,48 @@ export function RegisterPage() {
     setLoading(true)
     setError("")
 
+    if (formData.password !== formData.confirmPassword) {
+      setError("Passwords do not match.")
+      setLoading(false)
+      return
+    }
+
     try {
-      // 1. Create Firebase Auth user
       const userCredential = await createUserWithEmailAndPassword(auth, formData.email, formData.password)
       const user = userCredential.user
 
-      // 2. Generate a Mosque ID (e.g., MSQ-BD-TIMESTAMP)
       const ts = Date.now().toString().slice(-6)
       const c = formData.country.slice(0, 2).toUpperCase()
       const mosqueId = `MSQ-${c}-${ts}`
 
-      // 3. Create Mosque document in 'mosques' collection
       await setDoc(doc(db, "mosques", mosqueId), {
         id: mosqueId,
         name: formData.mosqueName,
         country: formData.country,
-        city: "",
-        timezone: "Asia/Dhaka", // Can be dynamic later
-        plan: "free", // Default plan
-        status: "active", // Active until billing is enforced
+        city: formData.city,
+        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC",
+        plan: planParam,
+        status: "active",
         screensCount: 1,
         adminId: user.uid,
+        adminEmail: user.email,
         createdAt: new Date().toISOString(),
         prayerConfig: { method: "3" },
-        themeSettings: { theme: "E", fsClock: 88, fsAdhan: 25 },
+        themeSettings: { tvDesign: "E", fsClock: 88, fsAdhan: 25 },
         orientation: "landscape",
+        displayLang: "en",
         typography: {
           fontFamily: "'Inter', sans-serif",
           fsClock: 88, fsAdhan: 25, fsIq: 34, fsNm: 10, fsSlide: 14, fsAr: 28
-        }
+        },
+        slideConfig: {
+          showQuran: "1", showHadith: "1", showAnn: "1", showClean: "1",
+          showDars: "0", showCommunity: "0", slideDur: "10"
+        },
+        contentItems: [],
+        annItems: [],
       })
 
-      // 4. Create User document in 'users' collection linking to Mosque
       await setDoc(doc(db, "users", user.uid), {
         email: user.email,
         role: "MOSQUE_ADMIN",
@@ -65,100 +82,139 @@ export function RegisterPage() {
         createdAt: new Date().toISOString(),
       })
 
-      // 5. Redirect to checkout with plan and mosqueId (avoids AuthContext race condition)
-      navigate(`/checkout?plan=${planParam}&mosqueId=${mosqueId}`)
+      if (planParam === "free") {
+        navigate("/dashboard")
+      } else {
+        navigate(`/checkout?plan=${planParam}&mosqueId=${mosqueId}`)
+      }
     } catch (err: any) {
       console.error(err)
-      setError(err.message || "Failed to create account")
+      const code = err?.code || ""
+      const friendlyErrors: Record<string, string> = {
+        "auth/email-already-in-use": "This email is already registered. Try logging in instead.",
+        "auth/invalid-email": "Please enter a valid email address.",
+        "auth/weak-password": "Password is too weak. Use at least 6 characters.",
+        "auth/network-request-failed": "Network error. Please check your internet connection.",
+        "auth/too-many-requests": "Too many attempts. Please wait a moment and try again.",
+      }
+      setError(friendlyErrors[code] || "Failed to create account. Please try again.")
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-zinc-950 p-4">
-      <div className="w-full max-w-md bg-zinc-900 border border-white/10 rounded-2xl p-8 shadow-2xl">
-        
-        <div className="text-center mb-8">
-          <div className="w-16 h-16 bg-emerald-500/20 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-emerald-500/30">
-            <Building2 className="w-8 h-8 text-emerald-400" />
-          </div>
-          <h1 className="text-2xl font-bold text-white mb-2">Create Mosque Account</h1>
-          <p className="text-zinc-400 text-sm">Set up your digital display in minutes</p>
-        </div>
+    <div className="min-h-screen flex items-center justify-center bg-background relative selection:bg-primary selection:text-primary-foreground p-4">
+      <div className="absolute top-4 right-4 animate-in fade-in slide-in-from-top-4">
+        <ModeToggle />
+      </div>
 
-        {error && (
-          <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-xl flex items-start gap-3">
-            <AlertCircle className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
-            <p className="text-sm text-red-200">{error}</p>
-          </div>
-        )}
+      <div className="absolute inset-0 z-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary/20 via-background to-background" />
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-zinc-300">Mosque Name</label>
-            <div className="relative">
-              <Building2 className="w-5 h-5 text-zinc-500 absolute left-3 top-1/2 -translate-y-1/2" />
-              <input 
-                type="text"
+      <Card className="w-full max-w-md z-10 border-border/50 shadow-2xl backdrop-blur-sm bg-card/95 animate-in zoom-in-95 duration-500">
+        <CardHeader className="space-y-2 text-center pb-4">
+          <div className="mx-auto bg-primary/10 w-16 h-16 rounded-full flex items-center justify-center mb-4">
+            <Building2 className="w-8 h-8 text-primary" />
+          </div>
+          <CardTitle className="text-3xl font-bold tracking-tight">Create Account</CardTitle>
+          <CardDescription className="text-muted-foreground text-sm">
+            Set up your mosque's digital display in minutes
+            {planParam !== "free" && (
+              <span className="block mt-1 text-primary font-medium capitalize">
+                Selected plan: {planParam}
+              </span>
+            )}
+          </CardDescription>
+        </CardHeader>
+        <form onSubmit={handleSubmit}>
+          <CardContent className="space-y-4">
+            {error && (
+              <div className="p-3 bg-destructive/15 border border-destructive/30 rounded-lg flex items-start gap-3">
+                <AlertCircle className="w-5 h-5 text-destructive shrink-0" />
+                <p className="text-sm text-destructive">{error}</p>
+              </div>
+            )}
+
+            <div className="space-y-2">
+              <Label htmlFor="mosqueName">Mosque Name</Label>
+              <Input
+                id="mosqueName"
                 required
                 value={formData.mosqueName}
                 onChange={e => setFormData({...formData, mosqueName: e.target.value})}
-                className="w-full bg-zinc-950 border border-white/10 rounded-xl py-2.5 pl-10 pr-4 text-white focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors"
+                className="bg-background/50 focus-visible:ring-primary"
                 placeholder="e.g. Baitul Mukarram"
               />
             </div>
-          </div>
 
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-zinc-300">Email Address</label>
-            <div className="relative">
-              <Mail className="w-5 h-5 text-zinc-500 absolute left-3 top-1/2 -translate-y-1/2" />
-              <input 
+            <div className="space-y-2">
+              <Label htmlFor="city">City <span className="text-muted-foreground font-normal">(for prayer times)</span></Label>
+              <Input
+                id="city"
+                required
+                value={formData.city}
+                onChange={e => setFormData({...formData, city: e.target.value})}
+                className="bg-background/50 focus-visible:ring-primary"
+                placeholder="e.g. Dhaka, London, Rome"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
                 type="email"
                 required
                 value={formData.email}
                 onChange={e => setFormData({...formData, email: e.target.value})}
-                className="w-full bg-zinc-950 border border-white/10 rounded-xl py-2.5 pl-10 pr-4 text-white focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors"
+                className="bg-background/50 focus-visible:ring-primary"
                 placeholder="admin@mosque.com"
               />
             </div>
-          </div>
 
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-zinc-300">Password</label>
-            <div className="relative">
-              <Lock className="w-5 h-5 text-zinc-500 absolute left-3 top-1/2 -translate-y-1/2" />
-              <input 
-                type="password"
-                required
-                minLength={6}
-                value={formData.password}
-                onChange={e => setFormData({...formData, password: e.target.value})}
-                className="w-full bg-zinc-950 border border-white/10 rounded-xl py-2.5 pl-10 pr-4 text-white focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors"
-                placeholder="••••••••"
-              />
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label htmlFor="password">Password</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  required
+                  minLength={6}
+                  value={formData.password}
+                  onChange={e => setFormData({...formData, password: e.target.value})}
+                  className="bg-background/50 focus-visible:ring-primary"
+                  placeholder="Min 6 chars"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="confirmPassword">Confirm</Label>
+                <Input
+                  id="confirmPassword"
+                  type="password"
+                  required
+                  minLength={6}
+                  value={formData.confirmPassword}
+                  onChange={e => setFormData({...formData, confirmPassword: e.target.value})}
+                  className="bg-background/50 focus-visible:ring-primary"
+                  placeholder="Repeat password"
+                />
+              </div>
             </div>
-          </div>
-
-          <button 
-            type="submit" 
-            disabled={loading}
-            className="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-medium py-3 rounded-xl mt-6 transition-all active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-          >
-            {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : "Create Account"}
-          </button>
+          </CardContent>
+          <CardFooter className="flex flex-col gap-4">
+            <Button type="submit" disabled={loading} className="w-full text-md h-11 font-semibold transition-transform active:scale-[0.98]">
+              {loading ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : null}
+              Create Account
+            </Button>
+            <p className="text-sm text-muted-foreground text-center">
+              Already have an account?{' '}
+              <Link to="/login" className="text-primary hover:underline font-medium">
+                Sign in
+              </Link>
+            </p>
+          </CardFooter>
         </form>
-
-        <div className="mt-6 text-center">
-          <p className="text-sm text-zinc-400">
-            Already have an account?{' '}
-            <Link to="/login" className="text-emerald-400 hover:text-emerald-300 font-medium">
-              Sign in
-            </Link>
-          </p>
-        </div>
-      </div>
+      </Card>
     </div>
   )
 }

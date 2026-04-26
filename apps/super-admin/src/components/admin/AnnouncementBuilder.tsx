@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { uploadToCloudinary } from "@/lib/cloudinary";
 import { Image as ImageIcon, Loader2 } from "lucide-react";
+import { toast } from "sonner";
 
 const ICONS = ['📢', '📵', '🤫', '🧹', '🕌', '🚫', '✅', '⚠️', '👟', '💧', '📿', '📖', '🤲', '🌙', '⏰', '🔕', '🚪', '🧴', '💚', '🌿', '🔔', '📝', '🎓', '❤️'];
 
@@ -34,7 +35,7 @@ export function AnnouncementBuilder({
 
   const handleAddText = () => {
     if (!en && !it && !bn && !ar) {
-      alert("Add at least one title");
+      toast.warning("Add at least one title");
       return;
     }
     const newItem: AnnItem = {
@@ -58,7 +59,7 @@ export function AnnouncementBuilder({
       const url = await uploadToCloudinary(file);
       setPhotoUrl(url);
     } catch {
-      alert("Failed");
+      toast.error("Image upload failed");
     } finally {
       setIsUploading(false);
     }
@@ -66,7 +67,7 @@ export function AnnouncementBuilder({
 
   const handleAddPhoto = () => {
     if (!photoUrl) {
-      alert("Upload photo first");
+      toast.warning("Upload a photo first");
       return;
     }
     const newItem: AnnItem = {

@@ -76,8 +76,8 @@ export function LandingPage() {
               <Button onClick={() => navigate("/register")} className="h-14 px-8 text-lg bg-white text-black hover:bg-zinc-200 rounded-full font-semibold shadow-xl hover:scale-105 transition-all">
                 Get Started Now <ChevronRight className="w-5 h-5 ml-1" />
               </Button>
-              <Button variant="outline" className="h-14 px-8 text-lg rounded-full font-medium border-white/20 hover:bg-white/5 text-white">
-                <Play className="w-5 h-5 mr-2" /> View Demo
+              <Button variant="outline" onClick={() => document.getElementById("pricing")?.scrollIntoView({ behavior: "smooth" })} className="h-14 px-8 text-lg rounded-full font-medium border-white/20 hover:bg-white/5 text-white">
+                <Play className="w-5 h-5 mr-2" /> View Plans
               </Button>
             </div>
           </div>
@@ -136,7 +136,7 @@ export function LandingPage() {
       </section>
 
       {/* Dynamic Pricing Section */}
-      <section className="py-24 relative overflow-hidden">
+      <section id="pricing" className="py-24 relative overflow-hidden">
         <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-cyan-500/10 blur-[100px] rounded-full pointer-events-none" />
         
         <div className="max-w-7xl mx-auto px-6 relative z-10">
@@ -149,9 +149,12 @@ export function LandingPage() {
             <div className="flex justify-center"><div className="animate-pulse w-32 h-8 bg-white/10 rounded-full"></div></div>
           ) : (
             <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto items-center">
-              {plans.map((plan, i) => (
-                <div key={plan.id} className={`relative p-8 rounded-3xl border ${i === 1 ? 'bg-gradient-to-b from-zinc-900 to-zinc-950 border-emerald-500 shadow-[0_0_30px_rgba(16,185,129,0.15)] scale-105 z-10' : 'bg-zinc-900 border-white/10'}`}>
-                  {i === 1 && <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 px-4 py-1 bg-emerald-500 text-white text-xs font-bold uppercase tracking-wider rounded-full">Most Popular</div>}
+              {plans.map((plan, i) => {
+                // Highlight the highest-priced non-free plan that isn't the last one, or the middle plan
+                const isPopular = plans.length >= 2 && plan.price > 0 && i === Math.min(1, plans.length - 1)
+                return (
+                <div key={plan.id} className={`relative p-8 rounded-3xl border ${isPopular ? 'bg-gradient-to-b from-zinc-900 to-zinc-950 border-emerald-500 shadow-[0_0_30px_rgba(16,185,129,0.15)] scale-105 z-10' : 'bg-zinc-900 border-white/10'}`}>
+                  {isPopular && <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 px-4 py-1 bg-emerald-500 text-white text-xs font-bold uppercase tracking-wider rounded-full">Most Popular</div>}
                   
                   <div className="mb-8">
                     <h3 className="text-2xl font-bold text-white mb-2">{plan.name}</h3>
@@ -180,14 +183,15 @@ export function LandingPage() {
                     </li>
                   </ul>
 
-                  <Button 
+                  <Button
                     onClick={() => navigate(`/register?plan=${plan.id}`)}
-                    className={`w-full h-12 rounded-xl font-semibold text-base transition-all ${i === 1 ? 'bg-emerald-500 hover:bg-emerald-600 text-white' : 'bg-white/10 hover:bg-white/20 text-white'}`}
+                    className={`w-full h-12 rounded-xl font-semibold text-base transition-all ${isPopular ? 'bg-emerald-500 hover:bg-emerald-600 text-white' : 'bg-white/10 hover:bg-white/20 text-white'}`}
                   >
                     {plan.price === 0 ? 'Get Started Free' : 'Choose Plan'}
                   </Button>
                 </div>
-              ))}
+                )
+              })}
             </div>
           )}
         </div>

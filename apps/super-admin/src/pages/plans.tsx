@@ -3,6 +3,7 @@ import { collection, onSnapshot, doc, updateDoc, setDoc } from "firebase/firesto
 import { db } from "../lib/firebase"
 import { useAuth } from "../contexts/auth"
 import { Shield, Save, Plus, Trash2, Edit2, Loader2, CheckCircle2 } from "lucide-react"
+import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -78,7 +79,7 @@ export function PlansPage() {
       await updateDoc(doc(db, "plans", planId), updates)
     } catch (error) {
       console.error(error)
-      alert("Failed to update plan")
+      toast.error("Failed to update plan")
     } finally {
       setSavingId(null)
     }

@@ -1,6 +1,6 @@
 import { useState } from "react"
 import { Link, useNavigate } from "react-router-dom"
-import { useGetMosquesQuery, useAddMosqueMutation, useDeleteMosqueMutation } from "@/store/api/apiSlice"
+import { useGetMosquesQuery, useAddMosqueMutation, useDeleteMosqueMutation, useUpdateMosqueMutation } from "@/store/api/apiSlice"
 import { Building2, Search, MoreHorizontal, Plus, Filter, Loader2, ExternalLink } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
@@ -38,6 +38,7 @@ export function MosquesPage() {
   const navigate = useNavigate()
   const { data: mosques = [], isLoading, isFetching } = useGetMosquesQuery()
   const [deleteMosque] = useDeleteMosqueMutation()
+  const [updateMosque] = useUpdateMosqueMutation()
   
   const [search, setSearch] = useState("")
   const [isAddOpen, setIsAddOpen] = useState(false)
@@ -49,8 +50,16 @@ export function MosquesPage() {
   )
 
   const handleDelete = async (id: string) => {
-    if (confirm("Are you sure you want to delete this mosque?")) {
+    if (confirm("Are you sure you want to permanently delete this mosque? This action cannot be undone.")) {
       await deleteMosque(id)
+    }
+  }
+
+  const handleSuspend = async (mosque: any) => {
+    const isSuspended = mosque.status === "Suspended"
+    const action = isSuspended ? "reactivate" : "suspend"
+    if (confirm(`Are you sure you want to ${action} "${mosque.name}"?`)) {
+      await updateMosque({ id: mosque.id, data: { status: isSuspended ? "Active" : "Suspended" } })
     }
   }
 
@@ -156,9 +165,18 @@ export function MosquesPage() {
                           <ExternalLink className="mr-2 h-4 w-4" />
                           View Details
                         </DropdownMenuItem>
-                        <DropdownMenuItem>Manage Screens</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => navigate(`/dashboard/screens`)}>
+                          Manage Screens
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          className={mosque.status === "Suspended" ? "text-emerald-600 focus:bg-emerald-500/10" : "text-amber-600 focus:bg-amber-500/10"}
+                          onClick={() => handleSuspend(mosque)}
+                        >
+                          {mosque.status === "Suspended" ? "Reactivate Mosque" : "Suspend Mosque"}
+                        </DropdownMenuItem>
                         <DropdownMenuItem className="text-destructive focus:bg-destructive/10" onClick={() => handleDelete(mosque.id)}>
-                          Suspend Mosque
+                          Delete Mosque
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
@@ -189,7 +207,7 @@ function AddMosqueDialog({ onClose }: { onClose: () => void }) {
       <DialogHeader>
         <DialogTitle>Add New Mosque</DialogTitle>
         <DialogDescription>
-          Register a new mosque. An email with credentials will be sent automatically.
+          Register a new mosque to the platform.
         </DialogDescription>
       </DialogHeader>
       <form onSubmit={handleSubmit} className="space-y-4 pt-4">

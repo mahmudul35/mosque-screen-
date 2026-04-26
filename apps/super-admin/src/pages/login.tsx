@@ -1,6 +1,6 @@
 import { useState } from "react"
 import { useNavigate, Link } from "react-router-dom"
-import { signInWithEmailAndPassword } from "firebase/auth"
+import { signInWithEmailAndPassword, sendPasswordResetEmail } from "firebase/auth"
 import { auth } from "../lib/firebase"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { ModeToggle } from "@/components/mode-toggle"
 import { AlertCircle, Loader2 } from "lucide-react"
+import { toast } from "sonner"
 
 export function LoginPage() {
   const [email, setEmail] = useState("")
@@ -16,6 +17,24 @@ export function LoginPage() {
   const navigate = useNavigate()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
+
+  const handleForgotPassword = async () => {
+    if (!email) {
+      setError("Enter your email address first, then click Forgot Password.")
+      return
+    }
+    try {
+      await sendPasswordResetEmail(auth, email)
+      toast.success("Password reset email sent! Check your inbox.")
+    } catch (err: any) {
+      const code = err?.code || ""
+      if (code === "auth/user-not-found") {
+        setError("No account found with this email.")
+      } else {
+        toast.error("Failed to send reset email. Try again.")
+      }
+    }
+  }
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -27,7 +46,16 @@ export function LoginPage() {
       navigate("/dashboard")
     } catch (err: any) {
       console.error(err)
-      setError("Invalid email or password")
+      const code = err?.code || ""
+      const friendlyErrors: Record<string, string> = {
+        "auth/user-not-found": "No account found with this email.",
+        "auth/wrong-password": "Incorrect password. Please try again.",
+        "auth/invalid-credential": "Invalid email or password.",
+        "auth/too-many-requests": "Too many attempts. Please wait a moment and try again.",
+        "auth/network-request-failed": "Network error. Check your internet connection.",
+        "auth/user-disabled": "This account has been disabled. Contact support.",
+      }
+      setError(friendlyErrors[code] || "Invalid email or password.")
     } finally {
       setLoading(false)
     }
@@ -55,9 +83,9 @@ export function LoginPage() {
               <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-12h2v6h-2zm0 8h2v2h-2z" />
             </svg>
           </div>
-          <CardTitle className="text-3xl font-bold tracking-tight">Super Admin</CardTitle>
+          <CardTitle className="text-3xl font-bold tracking-tight">Mosque SaaS</CardTitle>
           <CardDescription className="text-muted-foreground text-sm">
-            Sign in to manage the Mosque SaaS platform
+            Sign in to manage your mosque displays
           </CardDescription>
         </CardHeader>
         <form onSubmit={handleLogin}>
@@ -83,6 +111,13 @@ export function LoginPage() {
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label htmlFor="password">Password</Label>
+                <button
+                  type="button"
+                  onClick={handleForgotPassword}
+                  className="text-xs text-primary hover:underline font-medium"
+                >
+                  Forgot Password?
+                </button>
               </div>
               <Input
                 id="password"
